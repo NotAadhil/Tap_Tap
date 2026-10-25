@@ -18,10 +18,24 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.Nfc
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PriorityHigh
+import androidx.compose.material.icons.outlined.Sensors
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -30,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -86,21 +101,21 @@ fun HomeScreenContent(
                     modifier = Modifier.weight(1f),
                     label = "Registered Tags",
                     value = registeredTags.size.toString(),
-                    icon = "🏷️",
+                    icon = Icons.Outlined.Nfc,
                     onClick = { onNavigateTab(AppTab.TAGS) }
                 )
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     label = "Automations",
                     value = automations.size.toString(),
-                    icon = "⚙️",
+                    icon = Icons.Outlined.AccountTree,
                     onClick = { onNavigateTab(AppTab.AUTOMATIONS) }
                 )
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     label = "Executions",
                     value = executionLogs.size.toString(),
-                    icon = "📜",
+                    icon = Icons.Outlined.History,
                     onClick = { onNavigateTab(AppTab.HISTORY) }
                 )
             }
@@ -171,11 +186,24 @@ fun HomeScreenContent(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("👋", fontSize = 32.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.size(52.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Nfc,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "No tags registered yet",
                             fontWeight = FontWeight.SemiBold,
@@ -209,12 +237,17 @@ fun HomeScreenContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            shape = CircleShape,
+                            shape = RoundedCornerShape(8.dp),
                             color = if (tag.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(if (tag.isEnabled) "⚡" else "⏸️", fontSize = 16.sp)
+                                Icon(
+                                    imageVector = if (tag.isEnabled) Icons.Outlined.Bolt else Icons.Outlined.Pause,
+                                    contentDescription = null,
+                                    tint = if (tag.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -243,7 +276,7 @@ private fun MetricCard(
     modifier: Modifier = Modifier,
     label: String,
     value: String,
-    icon: String,
+    icon: ImageVector,
     onClick: () -> Unit
 ) {
     Card(
@@ -259,8 +292,21 @@ private fun MetricCard(
             modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            Text(icon, fontSize = 20.sp)
-            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
                 fontWeight = FontWeight.Bold,
@@ -298,11 +344,21 @@ private fun NfcHardwareStatusCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (!isAvailable) "❌" else if (!isEnabled) "⚠️" else "🟢",
-                    fontSize = 18.sp
-                )
-                Spacer(modifier = Modifier.width(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (!isAvailable) Color(0xFFFFEBEE) else if (!isEnabled) Color(0xFFFFF3E0) else Color(0xFFC8E6C9),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (!isAvailable) Icons.Outlined.ErrorOutline else if (!isEnabled) Icons.Outlined.WarningAmber else Icons.Outlined.CheckCircle,
+                            contentDescription = null,
+                            tint = if (!isAvailable) Color(0xFFC62828) else if (!isEnabled) Color(0xFFB45309) else Color(0xFF1B5E20),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
                         text = if (!isAvailable) "NFC Not Available" else if (!isEnabled) "NFC Disabled in Settings" else "NFC Ready & Listening",
@@ -353,7 +409,7 @@ private fun HomeLiveScanCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = CircleShape,
+                shape = RoundedCornerShape(8.dp),
                 color = when (scanEvent) {
                     is ScanEvent.Matched -> Color(0xFF2E7D32)
                     is ScanEvent.Unregistered -> Color(0xFF1976D2)
@@ -364,17 +420,17 @@ private fun HomeLiveScanCard(
                 modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = when (scanEvent) {
-                            is ScanEvent.Matched -> "✓"
-                            is ScanEvent.Unregistered -> "+"
-                            is ScanEvent.Error -> "!"
-                            is ScanEvent.Debounced -> "⏱"
-                            null -> "📡"
+                    Icon(
+                        imageVector = when (scanEvent) {
+                            is ScanEvent.Matched -> Icons.Outlined.Check
+                            is ScanEvent.Unregistered -> Icons.Outlined.Add
+                            is ScanEvent.Error -> Icons.Outlined.PriorityHigh
+                            is ScanEvent.Debounced -> Icons.Outlined.HourglassEmpty
+                            null -> Icons.Outlined.Sensors
                         },
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -387,7 +443,7 @@ private fun HomeLiveScanCard(
                         is ScanEvent.Matched -> "Recognized: ${scanEvent.tag.displayName}"
                         is ScanEvent.Unregistered -> "Unregistered Tag Detected"
                         is ScanEvent.Error -> "Scan Warning"
-                        is ScanEvent.Debounced -> "Debounce Guard Active"
+                        is ScanEvent.Debounced -> "Cooldown Guard Active"
                         null -> if (isNfcReady) "Ready to Scan" else "NFC Standby"
                     },
                     fontWeight = FontWeight.SemiBold,
@@ -398,7 +454,7 @@ private fun HomeLiveScanCard(
                         is ScanEvent.Matched -> "Automation sequence executed successfully"
                         is ScanEvent.Unregistered -> "UID: ${scanEvent.tagData.rawUidHex} • Tap to register"
                         is ScanEvent.Error -> scanEvent.message
-                        is ScanEvent.Debounced -> "Rapid double-tap ignored (< 2s)"
+                        is ScanEvent.Debounced -> "Continuous hold or cooldown active — re-scan ignored"
                         null -> "Hold any physical NFC card or tag against the phone"
                     },
                     fontSize = 12.sp,

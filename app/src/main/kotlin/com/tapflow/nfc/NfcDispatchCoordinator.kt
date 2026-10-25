@@ -53,6 +53,7 @@ class NfcDispatchCoordinator(
     private val automationExecutor: AutomationExecutor,
     private val executionLogRepository: ExecutionLogRepository,
     private val context: Context,
+    private val getCooldownMs: () -> Long = { 5000L },
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
 ) {
     private val _scanEvents = MutableSharedFlow<ScanEvent>(replay = 1)
@@ -61,29 +62,29 @@ class NfcDispatchCoordinator(
     private var lastTagKey: String? = null
     private var lastRawUid: String? = null
     private var lastExecutionTimeMs: Long = 0L
-    private val debounceWindowMs: Long = 2000L
+    private var lastSeenTimeMs: Long = 0L
 
-    fun onTagDetected(tagData: TagData) {
+    fun onTagDetected(tagData: TagData, onHandled: ((ScanEvent) -> Unit)? = null) {
         scope.launch {
             // Guard 1: Random UID
             if (tagData.hasRandomUid) {
-                _scanEvents.emit(
-                    ScanEvent.Error(
-                        message = "This tag has a dynamic random UID (starts with 0x08). It cannot be used as a reliable trigger.",
-                        tagData = tagData
-                    )
+                val errorEvent = ScanEvent.Error(
+                    message = "This tag has a dynamic random UID (starts with 0x08). It cannot be used as a reliable trigger.",
+                    tagData = tagData
                 )
+                _scanEvents.emit(errorEvent)
+                onHandled?.invoke(errorEvent)
                 return@launch
             }
 
             // Guard 2: Payment/Security card
             if (tagData.isPaymentCard) {
-                _scanEvents.emit(
-                    ScanEvent.Error(
-                        message = "Payment and banking cards are not supported for safety and privacy reasons.",
-                        tagData = tagData
-                    )
+                val errorEvent = ScanEvent.Error(
+                    message = "Payment and banking cards are not supported for safety and privacy reasons.",
+                    tagData = tagData
                 )
+                _scanEvents.emit(errorEvent)
+                onHandled?.invoke(errorEvent)
                 return@launch
             }
 
@@ -91,29 +92,40 @@ class NfcDispatchCoordinator(
             val registeredTag = tagRepository.getTag(tagData.tagKey, tagData.rawUidHex)
 
             if (registeredTag == null) {
-                _scanEvents.emit(ScanEvent.Unregistered(tagData))
+                val unregEvent = ScanEvent.Unregistered(tagData)
+                _scanEvents.emit(unregEvent)
+                onHandled?.invoke(unregEvent)
                 postUnknownTagNotification(tagData)
             } else {
                 if (!registeredTag.isEnabled) {
-                    _scanEvents.emit(
-                        ScanEvent.Matched(
-                            tag = registeredTag,
-                            result = ActionResult.Failure(reason = "Tag '${registeredTag.displayName}' is disabled."),
-                            isExecuted = false
-                        )
+                    val disabledEvent = ScanEvent.Matched(
+                        tag = registeredTag,
+                        result = ActionResult.Failure(reason = "Tag '${registeredTag.displayName}' is disabled."),
+                        isExecuted = false
                     )
+                    _scanEvents.emit(disabledEvent)
+                    onHandled?.invoke(disabledEvent)
                     return@launch
                 }
 
-                // Debounce check - 2 second cooldown across both tagKey and raw UID
+                // Cooldown and continuous hold suppression
                 val now = System.currentTimeMillis()
+                val cooldown = getCooldownMs()
                 val isSameTag = registeredTag.tagKey.equals(lastTagKey, ignoreCase = true) ||
                         registeredTag.rawUidHex.equals(lastRawUid, ignoreCase = true)
-                if (isSameTag && (now - lastExecutionTimeMs) < debounceWindowMs) {
-                    _scanEvents.emit(ScanEvent.Debounced(registeredTag))
+
+                val isContinuousHold = isSameTag && (now - lastSeenTimeMs) < 2500L
+                val isWithinCooldown = isSameTag && (now - lastExecutionTimeMs) < cooldown
+
+                if (isSameTag && (isWithinCooldown || isContinuousHold)) {
+                    lastSeenTimeMs = now
+                    val debouncedEvent = ScanEvent.Debounced(registeredTag)
+                    _scanEvents.emit(debouncedEvent)
+                    onHandled?.invoke(debouncedEvent)
                     return@launch
                 }
 
+                lastSeenTimeMs = now
                 lastTagKey = registeredTag.tagKey
                 lastRawUid = registeredTag.rawUidHex
                 lastExecutionTimeMs = now
@@ -140,14 +152,14 @@ class NfcDispatchCoordinator(
                                 ?: results.firstOrNull()
                                 ?: ActionResult.Success(message = "Executed ${actions.size} actions for '${automation.name}'")
 
-                            _scanEvents.emit(
-                                ScanEvent.Matched(
-                                    tag = registeredTag,
-                                    result = primaryResult,
-                                    isExecuted = true,
-                                    allResults = results
-                                )
+                            val matchedEvent = ScanEvent.Matched(
+                                tag = registeredTag,
+                                result = primaryResult,
+                                isExecuted = true,
+                                allResults = results
                             )
+                            _scanEvents.emit(matchedEvent)
+                            onHandled?.invoke(matchedEvent)
                             return@launch
                         }
                     }
@@ -173,22 +185,22 @@ class NfcDispatchCoordinator(
                         results = results
                     )
 
-                    _scanEvents.emit(
-                        ScanEvent.Matched(
-                            tag = registeredTag,
-                            result = primaryResult,
-                            isExecuted = true,
-                            allResults = results
-                        )
+                    val matchedEvent = ScanEvent.Matched(
+                        tag = registeredTag,
+                        result = primaryResult,
+                        isExecuted = true,
+                        allResults = results
                     )
+                    _scanEvents.emit(matchedEvent)
+                    onHandled?.invoke(matchedEvent)
                 } else {
-                    _scanEvents.emit(
-                        ScanEvent.Matched(
-                            tag = registeredTag,
-                            result = ActionResult.Success(message = "Scanned '${registeredTag.displayName}', but no actions assigned yet."),
-                            isExecuted = false
-                        )
+                    val emptyEvent = ScanEvent.Matched(
+                        tag = registeredTag,
+                        result = ActionResult.Success(message = "Scanned '${registeredTag.displayName}', but no actions assigned yet."),
+                        isExecuted = false
                     )
+                    _scanEvents.emit(emptyEvent)
+                    onHandled?.invoke(emptyEvent)
                 }
             }
         }

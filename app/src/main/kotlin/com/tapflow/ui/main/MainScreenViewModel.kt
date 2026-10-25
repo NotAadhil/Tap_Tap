@@ -48,7 +48,8 @@ data class MainUiState(
     val installedApps: List<InstalledAppInfo> = emptyList(),
     val userMessage: String? = null,
     val errorMessage: String? = null,
-    val isHapticFeedbackEnabled: Boolean = false
+    val isHapticFeedbackEnabled: Boolean = false,
+    val cooldownSeconds: Long = 5L
 )
 
 class MainScreenViewModel(
@@ -82,6 +83,9 @@ class MainScreenViewModel(
     private val _isHapticFeedbackEnabled = MutableStateFlow(
         preferences.getBoolean("haptic_feedback_enabled", false)
     )
+    private val _cooldownSeconds = MutableStateFlow(
+        preferences.getLong("tag_cooldown_ms", 5000L) / 1000L
+    )
 
     val uiState: StateFlow<MainUiState> = combine(
         combine(
@@ -114,11 +118,12 @@ class MainScreenViewModel(
             _installedApps,
             _userMessage,
             _errorMessage,
-            _isHapticFeedbackEnabled
-        ) { apps, msg, err, haptic ->
-            Tuple4(apps, msg, err, haptic)
+            _isHapticFeedbackEnabled,
+            _cooldownSeconds
+        ) { apps, msg, err, haptic, cooldown ->
+            Tuple5(apps, msg, err, haptic, cooldown)
         }
-    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err, haptic) ->
+    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err, haptic, cooldown) ->
         MainUiState(
             currentTab = tab,
             isNfcAvailable = nfcManager.isNfcAvailable,
@@ -139,7 +144,8 @@ class MainScreenViewModel(
             installedApps = apps,
             userMessage = msg,
             errorMessage = err,
-            isHapticFeedbackEnabled = haptic
+            isHapticFeedbackEnabled = haptic,
+            cooldownSeconds = cooldown
         )
     }.stateIn(
         viewModelScope,
@@ -147,7 +153,8 @@ class MainScreenViewModel(
         MainUiState(
             isNfcAvailable = nfcManager.isNfcAvailable,
             isNfcEnabled = nfcManager.isNfcEnabled,
-            isHapticFeedbackEnabled = preferences.getBoolean("haptic_feedback_enabled", false)
+            isHapticFeedbackEnabled = preferences.getBoolean("haptic_feedback_enabled", false),
+            cooldownSeconds = preferences.getLong("tag_cooldown_ms", 5000L) / 1000L
         )
     )
 
@@ -446,6 +453,12 @@ class MainScreenViewModel(
     fun toggleHapticFeedback(enabled: Boolean) {
         preferences.edit().putBoolean("haptic_feedback_enabled", enabled).apply()
         _isHapticFeedbackEnabled.value = enabled
+    }
+
+    fun setCooldownSeconds(seconds: Long) {
+        preferences.edit().putLong("tag_cooldown_ms", seconds * 1000L).apply()
+        _cooldownSeconds.value = seconds
+        _userMessage.value = "Scan cooldown set to ${seconds}s"
     }
 
     // --- Simulator & Testing ---

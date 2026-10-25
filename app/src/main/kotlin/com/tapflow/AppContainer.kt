@@ -44,7 +44,8 @@ class AppContainer(val context: Context) {
     val automationExecutor: AutomationExecutor by lazy {
         AutomationExecutor(
             context = context,
-            isHapticEnabled = { preferences.getBoolean("haptic_feedback", false) }
+            isHapticEnabled = { preferences.getBoolean("haptic_feedback_enabled", false) },
+            getCooldownMs = { preferences.getLong("tag_cooldown_ms", 5000L) }
         )
     }
 
@@ -58,7 +59,8 @@ class AppContainer(val context: Context) {
             automationRepository = automationRepository,
             automationExecutor = automationExecutor,
             executionLogRepository = executionLogRepository,
-            context = context
+            context = context,
+            getCooldownMs = { preferences.getLong("tag_cooldown_ms", 5000L) }
         )
     }
 

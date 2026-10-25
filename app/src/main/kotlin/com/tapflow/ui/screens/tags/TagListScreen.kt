@@ -18,6 +18,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Nfc
+import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,6 +33,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -88,8 +95,21 @@ fun TagListScreenContent(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🏷️", fontSize = 48.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Nfc,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         text = "No tags registered yet",
                         style = MaterialTheme.typography.titleMedium,
@@ -130,12 +150,17 @@ fun TagListScreenContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                shape = CircleShape,
+                                shape = RoundedCornerShape(8.dp),
                                 color = if (tag.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier.size(42.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text(if (tag.isEnabled) "⚡" else "⏸️", fontSize = 20.sp)
+                                    Icon(
+                                        imageVector = if (tag.isEnabled) Icons.Outlined.Bolt else Icons.Outlined.Pause,
+                                        contentDescription = null,
+                                        tint = if (tag.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
                             }
 
@@ -148,13 +173,41 @@ fun TagListScreenContent(
                                     fontSize = 16.sp
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = if (assignedAutomation != null) "⚙️ ${assignedAutomation.name}"
-                                           else if (tag.actionPayload.isNotBlank()) "🌐 ${tag.actionPayload}"
-                                           else "No automation assigned",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (assignedAutomation != null) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.AccountTree,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(13.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = assignedAutomation.name,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else if (tag.actionPayload.isNotBlank()) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Language,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(13.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = tag.actionPayload,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "No automation assigned",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                                 Text(
                                     text = "UID: ${tag.rawUidHex}",
                                     fontSize = 11.sp,

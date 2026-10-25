@@ -22,10 +22,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Launch
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.Vibration
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -51,7 +65,9 @@ fun SettingsScreenContent(
     isNfcAvailable: Boolean,
     isNfcEnabled: Boolean,
     isHapticFeedbackEnabled: Boolean = false,
+    cooldownSeconds: Long = 5L,
     onToggleHapticFeedback: (Boolean) -> Unit = {},
+    onSetCooldownSeconds: (Long) -> Unit = {},
     onClearHistory: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {}
 ) {
@@ -73,7 +89,7 @@ fun SettingsScreenContent(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Configure haptics, permissions, and view Android NFC hardware status.",
+                    text = "Configure haptics, anti-bounce cooldown, and system NFC dispatch.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -98,12 +114,17 @@ fun SettingsScreenContent(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Surface(
-                            shape = CircleShape,
+                            shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("📳", fontSize = 18.sp)
+                                Icon(
+                                    imageVector = Icons.Outlined.Vibration,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -129,6 +150,67 @@ fun SettingsScreenContent(
             }
         }
 
+        // Cooldown & Hold Guard Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Timer,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Scan Cooldown & Hold Guard", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text(
+                                "Prevents repeat executions when tag rests on or near phone",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(3L, 5L, 10L).forEach { seconds ->
+                            val isSelected = cooldownSeconds == seconds
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onSetCooldownSeconds(seconds) },
+                                label = { Text("${seconds}s Cooldown") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // NFC Status Card
         item {
             Card(
@@ -148,12 +230,17 @@ fun SettingsScreenContent(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Surface(
-                                shape = CircleShape,
+                                shape = RoundedCornerShape(8.dp),
                                 color = if (isNfcAvailable && isNfcEnabled) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
                                 modifier = Modifier.size(38.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text(if (isNfcAvailable && isNfcEnabled) "🟢" else "⚠️", fontSize = 18.sp)
+                                    Icon(
+                                        imageVector = if (isNfcAvailable && isNfcEnabled) Icons.Outlined.CheckCircle else Icons.Outlined.WarningAmber,
+                                        contentDescription = null,
+                                        tint = if (isNfcAvailable && isNfcEnabled) Color(0xFF2E7D32) else Color(0xFFC62828),
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
                             }
                             Spacer(modifier = Modifier.width(12.dp))
@@ -162,7 +249,7 @@ fun SettingsScreenContent(
                                 Text(
                                     text = if (!isNfcAvailable) "Hardware absent"
                                            else if (!isNfcEnabled) "Turned OFF in Android Settings"
-                                           else "Active, listening (2s cooldown enabled)",
+                                           else "Active, listening (${cooldownSeconds}s cooldown enabled)",
                                     fontSize = 12.sp,
                                     color = if (isNfcAvailable && isNfcEnabled) Color(0xFF2E7D32) else Color(0xFFC62828)
                                 )
@@ -205,12 +292,17 @@ fun SettingsScreenContent(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Surface(
-                            shape = CircleShape,
+                            shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("🔔", fontSize = 18.sp)
+                                Icon(
+                                    imageVector = Icons.Outlined.Notifications,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -249,12 +341,17 @@ fun SettingsScreenContent(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            shape = CircleShape,
+                            shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.primaryContainer,
                             modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("🎯", fontSize = 18.sp)
+                                Icon(
+                                    imageVector = Icons.Outlined.Launch,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -351,6 +448,13 @@ fun SettingsScreenContent(
 
         item {
             ExpandableFaqCard(
+                question = "How does the cooldown prevent repeated triggers?",
+                answer = "When an NFC tag is placed near or resting against the phone, Android's RF controller scans it continuously every ~1-2 seconds. TapFlow's Cooldown and Hold Guard detects continuous contact and suppresses re-triggers until you lift the card away."
+            )
+        }
+
+        item {
+            ExpandableFaqCard(
                 question = "Why are credit cards and banking cards rejected?",
                 answer = "Modern contactless debit and credit cards (EMV / ISO 7816-4) rotate their hardware identifiers dynamically or expose private banking data. TapFlow explicitly blocks payment cards to protect your financial security, prevent card cloning risks, and avoid non-functional triggers."
             )
@@ -436,10 +540,11 @@ private fun ExpandableFaqCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    text = if (expanded) "▲" else "▼",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 

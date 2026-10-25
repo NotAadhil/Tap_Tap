@@ -28,7 +28,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 class AutomationExecutor(
     private val context: Context,
     private val channelId: String = "tapflow_automations",
-    private val isHapticEnabled: () -> Boolean = { false }
+    private val isHapticEnabled: () -> Boolean = { false },
+    private val getCooldownMs: () -> Long = { 5000L }
 ) {
 
     private val _messageEvents = MutableSharedFlow<String>(extraBufferCapacity = 10)
@@ -36,16 +37,16 @@ class AutomationExecutor(
 
     private var lastExecutedTagKey: String = ""
     private var lastExecutedAt: Long = 0L
-    private val debounceMs = 2000L
 
     suspend fun execute(tagKey: String, actions: List<AutomationAction>): List<ActionResult> {
         val now = System.currentTimeMillis()
-        if (tagKey.isNotEmpty() && tagKey.equals(lastExecutedTagKey, ignoreCase = true) && (now - lastExecutedAt) < debounceMs) {
+        val cooldown = getCooldownMs()
+        if (tagKey.isNotEmpty() && tagKey.equals(lastExecutedTagKey, ignoreCase = true) && (now - lastExecutedAt) < cooldown) {
             return listOf(
                 ActionResult.Skipped(
                     actionId = 0,
                     description = "Sequence Debounce",
-                    reason = "Ignored rapid tap (< 2000ms)"
+                    reason = "Ignored rapid tap (< ${cooldown}ms)"
                 )
             )
         }

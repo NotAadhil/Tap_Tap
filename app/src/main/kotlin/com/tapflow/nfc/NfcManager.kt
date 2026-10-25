@@ -58,15 +58,15 @@ class NfcManager(
      * Entry point for tags delivered via intent dispatch (such as background cold start
      * or onNewIntent).
      */
-    fun handleTag(tag: Tag) {
+    fun handleTag(tag: Tag, onHandled: ((ScanEvent) -> Unit)? = null) {
         val tagData = NfcTagReader.readTag(tag) ?: return
-        coordinator.onTagDetected(tagData)
+        coordinator.onTagDetected(tagData, onHandled)
     }
 
     /**
      * Allows manual or simulated tag dispatch for testing environments where NFC hardware is absent.
      */
-    fun simulateTag(tagData: TagData) {
-        coordinator.onTagDetected(tagData)
+    fun simulateTag(tagData: TagData, onHandled: ((ScanEvent) -> Unit)? = null) {
+        coordinator.onTagDetected(tagData, onHandled)
     }
 }

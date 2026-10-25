@@ -20,12 +20,27 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FlashlightOn
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -93,8 +108,21 @@ fun AutomationScreenContent(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("⚙️", fontSize = 48.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.AccountTree,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         text = "No automations created yet",
                         style = MaterialTheme.typography.titleMedium,
@@ -102,7 +130,7 @@ fun AutomationScreenContent(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Create reusable multi-action sequences (e.g. open apps, load URLs, show notifications) and link them to any NFC tag.",
+                        text = "Create reusable multi-action sequences (e.g. open apps, load URLs, toggle flashlight) and link them to any NFC tag.",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -137,12 +165,17 @@ fun AutomationScreenContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                shape = CircleShape,
+                                shape = RoundedCornerShape(8.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 modifier = Modifier.size(42.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text("⚙️", fontSize = 20.sp)
+                                    Icon(
+                                        imageVector = Icons.Outlined.Bolt,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
                                 }
                             }
 
@@ -162,7 +195,12 @@ fun AutomationScreenContent(
                             }
 
                             IconButton(onClick = { automationToDelete = auto }) {
-                                Text("🗑️", fontSize = 16.sp)
+                                Icon(
+                                    imageVector = Icons.Outlined.DeleteOutline,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                     }
@@ -325,16 +363,29 @@ fun AutomationBuilderDialog(
                                     )
 
                                     val icon = when (action) {
-                                        is AutomationAction.OpenApp -> "📱"
-                                        is AutomationAction.OpenUrl -> "🌐"
-                                        is AutomationAction.ToggleFlashlight -> "🔦"
-                                        is AutomationAction.CopyToClipboard -> "📋"
-                                        is AutomationAction.ShowNotification -> "🔔"
-                                        is AutomationAction.PlaySound -> "🔊"
-                                        is AutomationAction.ShowMessage -> "💬"
+                                        is AutomationAction.OpenApp -> Icons.Outlined.Apps
+                                        is AutomationAction.OpenUrl -> Icons.Outlined.Language
+                                        is AutomationAction.ToggleFlashlight -> Icons.Outlined.FlashlightOn
+                                        is AutomationAction.CopyToClipboard -> Icons.Outlined.ContentCopy
+                                        is AutomationAction.ShowNotification -> Icons.Outlined.Notifications
+                                        is AutomationAction.PlaySound -> Icons.Outlined.VolumeUp
+                                        is AutomationAction.ShowMessage -> Icons.Outlined.ChatBubbleOutline
                                     }
 
-                                    Text(icon, fontSize = 16.sp)
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
                                     Spacer(modifier = Modifier.width(8.dp))
 
                                     Column(
@@ -351,22 +402,28 @@ fun AutomationBuilderDialog(
 
                                     // Up/Down reordering controls
                                     if (index > 0) {
-                                        Text(
-                                            text = "▲",
-                                            fontSize = 12.sp,
-                                            modifier = Modifier
-                                                .clickable { onMoveUp(index) }
-                                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
+                                        IconButton(
+                                            onClick = { onMoveUp(index) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.KeyboardArrowUp,
+                                                contentDescription = "Move Up",
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
                                     if (index < actions.size - 1) {
-                                        Text(
-                                            text = "▼",
-                                            fontSize = 12.sp,
-                                            modifier = Modifier
-                                                .clickable { onMoveDown(index) }
-                                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
+                                        IconButton(
+                                            onClick = { onMoveDown(index) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.KeyboardArrowDown,
+                                                contentDescription = "Move Down",
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
 
                                     Switch(
@@ -379,7 +436,12 @@ fun AutomationBuilderDialog(
                                         onClick = { onRemoveAction(index) },
                                         modifier = Modifier.size(28.dp)
                                     ) {
-                                        Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                                        Icon(
+                                            imageVector = Icons.Outlined.Close,
+                                            contentDescription = "Remove Action",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(16.dp)
+                                        )
                                     }
                                 }
                             }

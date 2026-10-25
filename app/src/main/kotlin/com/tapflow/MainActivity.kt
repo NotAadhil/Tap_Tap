@@ -76,13 +76,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var isActivityResumed: Boolean = false
+
     override fun onResume() {
         super.onResume()
+        isActivityResumed = true
         container.nfcManager.startReaderMode(this)
     }
 
     override fun onPause() {
         super.onPause()
+        isActivityResumed = false
         container.nfcManager.stopReaderMode(this)
     }
 
@@ -101,6 +105,8 @@ class MainActivity : ComponentActivity() {
                 NfcAdapter.ACTION_TAG_DISCOVERED
             )
         ) {
+            val wasInBackground = !isActivityResumed
+
             // Dismiss keyguard if locked so the user can interact with launched apps
             val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
             if (keyguardManager?.isKeyguardLocked == true) {
@@ -114,7 +120,22 @@ class MainActivity : ComponentActivity() {
                 intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
             }
             tag?.let {
-                container.nfcManager.handleTag(it)
+                container.nfcManager.handleTag(it) { event ->
+                    if (wasInBackground) {
+                        when (event) {
+                            is com.tapflow.nfc.ScanEvent.Matched,
+                            is com.tapflow.nfc.ScanEvent.Debounced,
+                            is com.tapflow.nfc.ScanEvent.Error -> {
+                                runOnUiThread {
+                                    moveTaskToBack(true)
+                                }
+                            }
+                            is com.tapflow.nfc.ScanEvent.Unregistered -> {
+                                // Keep activity in foreground so user can register the new tag
+                            }
+                        }
+                    }
+                }
                 // Consume the action to prevent re-processing on subsequent state restoration
                 intent.action = null
             }

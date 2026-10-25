@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
@@ -25,6 +26,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import com.tapflow.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -96,6 +102,7 @@ fun MainScreen(
         onSaveCurrentAutomation = { viewModel.saveCurrentAutomation(it) },
         onClearHistory = { viewModel.clearExecutionHistory() },
         onToggleHapticFeedback = { viewModel.toggleHapticFeedback(it) },
+        onSetCooldownSeconds = { viewModel.setCooldownSeconds(it) },
         onRequestNotificationPermission = onRequestNotificationPermission,
         onClearMessages = { viewModel.clearMessages() },
         showSimulateDialog = showSimulateDialog
@@ -136,6 +143,7 @@ fun MainScreenContent(
     onSaveCurrentAutomation: (String) -> Unit = {},
     onClearHistory: () -> Unit = {},
     onToggleHapticFeedback: (Boolean) -> Unit = {},
+    onSetCooldownSeconds: (Long) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onClearMessages: () -> Unit = {},
     showSimulateDialog: Boolean = false
@@ -159,17 +167,23 @@ fun MainScreenContent(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            shape = CircleShape,
+                            shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(28.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("⚡", fontSize = 14.sp)
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_tapflow_mark),
+                                    contentDescription = "TapFlow",
+                                    tint = androidx.compose.ui.graphics.Color.Unspecified,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "TapFlow",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -198,7 +212,13 @@ fun MainScreenContent(
                     NavigationBarItem(
                         selected = state.currentTab == tab,
                         onClick = { onSelectTab(tab) },
-                        icon = { Text(tab.icon, fontSize = 18.sp) },
+                        icon = {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = tab.title,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
                         label = { Text(tab.title, fontSize = 11.sp) }
                     )
                 }
@@ -208,7 +228,11 @@ fun MainScreenContent(
         floatingActionButton = {
             if (state.currentTab == AppTab.AUTOMATIONS) {
                 FloatingActionButton(onClick = onNewAutomation) {
-                    Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = "New Automation",
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         }
@@ -260,7 +284,9 @@ fun MainScreenContent(
                         isNfcAvailable = state.isNfcAvailable,
                         isNfcEnabled = state.isNfcEnabled,
                         isHapticFeedbackEnabled = state.isHapticFeedbackEnabled,
+                        cooldownSeconds = state.cooldownSeconds,
                         onToggleHapticFeedback = onToggleHapticFeedback,
+                        onSetCooldownSeconds = onSetCooldownSeconds,
                         onClearHistory = onClearHistory,
                         onRequestNotificationPermission = onRequestNotificationPermission
                     )

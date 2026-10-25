@@ -19,11 +19,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -91,8 +98,21 @@ fun HistoryScreenContent(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📜", fontSize = 48.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.History,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         text = "No execution history yet",
                         style = MaterialTheme.typography.titleMedium,
@@ -174,12 +194,17 @@ private fun LogCard(log: ExecutionLogEntity) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Surface(
-                        shape = CircleShape,
+                        shape = RoundedCornerShape(8.dp),
                         color = if (log.overallSuccess) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
                         modifier = Modifier.size(36.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text(if (log.overallSuccess) "✓" else "✕", color = if (log.overallSuccess) Color(0xFF2E7D32) else Color(0xFFC62828), fontWeight = FontWeight.Bold)
+                            Icon(
+                                imageVector = if (log.overallSuccess) Icons.Outlined.Check else Icons.Outlined.Close,
+                                contentDescription = null,
+                                tint = if (log.overallSuccess) Color(0xFF2E7D32) else Color(0xFFC62828),
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
 
@@ -199,10 +224,11 @@ private fun LogCard(log: ExecutionLogEntity) {
                     }
                 }
 
-                Text(
-                    text = if (expanded) "▲" else "▼",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 

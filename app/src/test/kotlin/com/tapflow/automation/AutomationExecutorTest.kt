@@ -26,11 +26,11 @@ class AutomationExecutorTest {
         assertEquals(1, firstRun.size)
         assertTrue("First scan must succeed", firstRun[0] is ActionResult.Success)
 
-        // Immediate second tap on same tag (< 2000ms)
+        // Immediate second tap on same tag (< 5000ms)
         val secondRun = executor.execute("TAG_A", listOf(action))
         assertEquals(1, secondRun.size)
         assertTrue("Rapid second scan must be debounced and skipped", secondRun[0] is ActionResult.Skipped)
-        assertTrue((secondRun[0] as ActionResult.Skipped).reason.contains("2000ms"))
+        assertTrue((secondRun[0] as ActionResult.Skipped).reason.contains("5000ms"))
     }
 
     @Test

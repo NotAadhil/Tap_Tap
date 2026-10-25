@@ -1,5 +1,6 @@
 package com.tapflow.ui.screens.dialogs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.FlashlightOn
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Nfc
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -25,6 +36,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -73,12 +86,17 @@ fun RegisterTagDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    shape = CircleShape,
+                    shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text("🏷️", fontSize = 18.sp)
+                        Icon(
+                            imageVector = Icons.Outlined.Nfc,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -238,43 +256,43 @@ fun ActionPickerDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ActionTypeOptionCard(
-                    icon = "📱",
+                    icon = Icons.Outlined.Apps,
                     title = "Open Application",
                     subtitle = "Launch any installed Android application",
                     onClick = { onSelectType("OPEN_APP") }
                 )
                 ActionTypeOptionCard(
-                    icon = "🌐",
+                    icon = Icons.Outlined.Language,
                     title = "Open Web URL",
                     subtitle = "Open a website in the default browser",
                     onClick = { onSelectType("OPEN_URL") }
                 )
                 ActionTypeOptionCard(
-                    icon = "🔦",
+                    icon = Icons.Outlined.FlashlightOn,
                     title = "Toggle Flashlight",
                     subtitle = "Turn camera torch light ON or OFF",
                     onClick = { onSelectType("TOGGLE_FLASHLIGHT") }
                 )
                 ActionTypeOptionCard(
-                    icon = "📋",
+                    icon = Icons.Outlined.ContentCopy,
                     title = "Copy to Clipboard",
                     subtitle = "Copy text or Wi-Fi password to clipboard",
                     onClick = { onSelectType("COPY_TO_CLIPBOARD") }
                 )
                 ActionTypeOptionCard(
-                    icon = "🔔",
+                    icon = Icons.Outlined.Notifications,
                     title = "Show Notification",
                     subtitle = "Display a system notification in the tray",
                     onClick = { onSelectType("SHOW_NOTIFICATION") }
                 )
                 ActionTypeOptionCard(
-                    icon = "🔊",
+                    icon = Icons.Outlined.VolumeUp,
                     title = "Play Sound",
                     subtitle = "Play a confirmation audio beep tone",
                     onClick = { onSelectType("PLAY_SOUND") }
                 )
                 ActionTypeOptionCard(
-                    icon = "💬",
+                    icon = Icons.Outlined.ChatBubbleOutline,
                     title = "Show Message",
                     subtitle = "Display a brief in-app confirmation message",
                     onClick = { onSelectType("SHOW_MESSAGE") }
@@ -292,7 +310,7 @@ fun ActionPickerDialog(
 
 @Composable
 private fun ActionTypeOptionCard(
-    icon: String,
+    icon: ImageVector,
     title: String,
     subtitle: String,
     onClick: () -> Unit
@@ -302,8 +320,10 @@ private fun ActionTypeOptionCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -311,12 +331,17 @@ private fun ActionTypeOptionCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = CircleShape,
+                shape = RoundedCornerShape(8.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(icon, fontSize = 20.sp)
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
             Spacer(modifier = Modifier.width(14.dp))
@@ -459,7 +484,13 @@ fun ActionConfigDialog(
                                         modifier = Modifier.padding(10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(if (isSelected) "✓ " else "📱 ")
+                                        Icon(
+                                            imageVector = if (isSelected) Icons.Outlined.Check else Icons.Outlined.Apps,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
                                         Column {
                                             Text(app.appName, fontWeight = FontWeight.Medium, fontSize = 14.sp)
                                             Text(

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- NFC contactless wave right -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M 16,7 A 7,7 0 0,1 18,12 A 7,7 0 0,1 16,17" />
+    <path
+        android:strokeColor="#A1A1AA"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M 13.5,9 A 4,4 0 0,1 14.5,12 A 4,4 0 0,1 13.5,15" />
+    <!-- Dynamic action lightning glyph -->
+    <path
+        android:fillColor="#2DD4BF"
+        android:pathData="M 10,4 L 5,12 L 9.5,12 L 8,20 L 14,11 L 9.5,11 Z" />
+</vector>
