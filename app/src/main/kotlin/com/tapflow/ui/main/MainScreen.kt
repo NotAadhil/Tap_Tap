@@ -53,6 +53,7 @@ import com.tapflow.ui.screens.dialogs.ActionConfigDialog
 import com.tapflow.ui.screens.dialogs.ActionPickerDialog
 import com.tapflow.ui.screens.dialogs.RegisterTagDialog
 import com.tapflow.ui.screens.dialogs.SimulateTagDialog
+import com.tapflow.ui.screens.dialogs.VirtualNfcConfigDialog
 import com.tapflow.ui.screens.history.HistoryScreenContent
 import com.tapflow.ui.screens.home.HomeScreenContent
 import com.tapflow.ui.screens.settings.SettingsScreenContent
@@ -110,7 +111,11 @@ fun MainScreen(
         onImportBackup = { viewModel.importBackupFromJson(it) },
         onRequestNotificationPermission = onRequestNotificationPermission,
         onClearMessages = { viewModel.clearMessages() },
-        showSimulateDialog = showSimulateDialog
+        showSimulateDialog = showSimulateDialog,
+        onToggleHce = { viewModel.toggleHceEmitting(it) },
+        onOpenHceConfig = { viewModel.openHceConfigDialog() },
+        onCloseHceConfig = { viewModel.closeHceConfigDialog() },
+        onSaveHceConfig = { type, content -> viewModel.updateHcePayload(type, content) }
     )
 }
 
@@ -156,7 +161,11 @@ fun MainScreenContent(
     onImportBackup: (String) -> Unit = {} ,
     onRequestNotificationPermission: () -> Unit = {},
     onClearMessages: () -> Unit = {},
-    showSimulateDialog: Boolean = false
+    showSimulateDialog: Boolean = false,
+    onToggleHce: (Boolean) -> Unit = {},
+    onOpenHceConfig: () -> Unit = {},
+    onCloseHceConfig: () -> Unit = {},
+    onSaveHceConfig: (String, String) -> Unit = { _, _ -> }
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -276,7 +285,12 @@ fun MainScreenContent(
                         onNavigateTab = onSelectTab,
                         onOpenSimulate = onOpenSimulateDialog,
                         onOpenTagDetail = onSelectTagForDetail,
-                        onTestTag = onTestTag
+                        onTestTag = onTestTag,
+                        isHceEmittingEnabled = state.isHceEmittingEnabled,
+                        hcePayloadType = state.hcePayloadType,
+                        hcePayloadContent = state.hcePayloadContent,
+                        onToggleHce = onToggleHce,
+                        onOpenHceConfig = onOpenHceConfig
                     )
                 }
                 AppTab.TAGS -> {
@@ -316,7 +330,12 @@ fun MainScreenContent(
                         onClearHistory = onClearHistory,
                         onRequestNotificationPermission = onRequestNotificationPermission,
                         onExportBackup = onExportBackup,
-                        onImportBackup = onImportBackup
+                        onImportBackup = onImportBackup,
+                        isHceEmittingEnabled = state.isHceEmittingEnabled,
+                        hcePayloadType = state.hcePayloadType,
+                        hcePayloadContent = state.hcePayloadContent,
+                        onToggleHce = onToggleHce,
+                        onOpenHceConfig = onOpenHceConfig
                     )
                 }
             }
@@ -387,6 +406,16 @@ fun MainScreenContent(
         SimulateTagDialog(
             onDismiss = onDismissSimulateDialog,
             onSimulate = onSimulateTag
+        )
+    }
+
+    // Modal: Virtual NFC Beacon Config Dialog
+    if (state.showHceConfigDialog) {
+        VirtualNfcConfigDialog(
+            currentType = state.hcePayloadType,
+            currentContent = state.hcePayloadContent,
+            onDismiss = onCloseHceConfig,
+            onSave = onSaveHceConfig
         )
     }
 }

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">TapFlow</string>
+    <string name="hce_service_desc">TapFlow Virtual NFC Tag Emulation</string>
+    <string name="hce_aid_desc">TapFlow Virtual Tag Signal</string>
 </resources>

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Launch
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -74,7 +75,12 @@ fun SettingsScreenContent(
     onClearHistory: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onExportBackup: () -> String = { "" },
-    onImportBackup: (String) -> Unit = {}
+    onImportBackup: (String) -> Unit = {},
+    isHceEmittingEnabled: Boolean = false,
+    hcePayloadType: String = "URL",
+    hcePayloadContent: String = "",
+    onToggleHce: (Boolean) -> Unit = {},
+    onOpenHceConfig: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showImportDialog by remember { mutableStateOf(false) }
@@ -275,6 +281,82 @@ fun SettingsScreenContent(
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Text("Configure", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Virtual NFC Beacon (HCE Emulation)
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isHceEmittingEnabled) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    else MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    if (isHceEmittingEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    else MaterialTheme.colorScheme.outline
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isHceEmittingEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Sensors,
+                                        contentDescription = null,
+                                        tint = if (isHceEmittingEnabled) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Virtual NFC Beacon (HCE)", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                Text(
+                                    text = if (isHceEmittingEnabled) "Broadcasting [$hcePayloadType]: ${hcePayloadContent.take(24)}..."
+                                    else "Standby (Emulates a contactless Type 4 smart card)",
+                                    fontSize = 12.sp,
+                                    color = if (isHceEmittingEnabled) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isHceEmittingEnabled,
+                            onCheckedChange = onToggleHce
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(
+                            onClick = onOpenHceConfig,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) {
+                            Text("Configure Signal", fontSize = 12.sp)
                         }
                     }
                 }

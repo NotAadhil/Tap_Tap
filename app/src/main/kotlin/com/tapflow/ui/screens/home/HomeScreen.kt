@@ -39,7 +39,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,7 +68,12 @@ fun HomeScreenContent(
     onNavigateTab: (AppTab) -> Unit,
     onOpenSimulate: () -> Unit,
     onOpenTagDetail: (RegisteredTagEntity) -> Unit,
-    onTestTag: (RegisteredTagEntity) -> Unit = {}
+    onTestTag: (RegisteredTagEntity) -> Unit = {},
+    isHceEmittingEnabled: Boolean = false,
+    hcePayloadType: String = "URL",
+    hcePayloadContent: String = "",
+    onToggleHce: (Boolean) -> Unit = {},
+    onOpenHceConfig: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -81,6 +88,17 @@ fun HomeScreenContent(
                 isAvailable = isNfcAvailable,
                 isEnabled = isNfcEnabled,
                 onOpenSimulate = onOpenSimulate
+            )
+        }
+
+        // Virtual NFC Beacon Card (HCE active signal emission)
+        item {
+            VirtualNfcBeaconCard(
+                isEnabled = isHceEmittingEnabled,
+                payloadType = hcePayloadType,
+                payloadContent = hcePayloadContent,
+                onToggle = onToggleHce,
+                onConfigure = onOpenHceConfig
             )
         }
 
@@ -537,6 +555,137 @@ private fun HomeLiveScanCard(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VirtualNfcBeaconCard(
+    isEnabled: Boolean,
+    payloadType: String,
+    payloadContent: String,
+    onToggle: (Boolean) -> Unit,
+    onConfigure: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isEnabled) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+            } else {
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            }
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+        ),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Sensors,
+                            contentDescription = null,
+                            tint = if (isEnabled) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Virtual NFC Beacon",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (isEnabled) "Broadcasting active signal (Type 4 HCE)"
+                        else "Standby (Tap to broadcast signal)",
+                        fontSize = 12.sp,
+                        color = if (isEnabled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Switch(
+                    checked = isEnabled,
+                    onCheckedChange = onToggle
+                )
+            }
+
+            if (isEnabled) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "[$payloadType]",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = payloadContent.take(34) + if (payloadContent.length > 34) "…" else "",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    OutlinedButton(
+                        onClick = onConfigure,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(34.dp)
+                    ) {
+                        Text("Config", fontSize = 12.sp)
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = onConfigure,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("Configure Payload", fontSize = 12.sp)
+                    }
+                }
             }
         }
     }

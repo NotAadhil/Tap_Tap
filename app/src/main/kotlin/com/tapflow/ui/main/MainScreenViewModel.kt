@@ -49,7 +49,11 @@ data class MainUiState(
     val userMessage: String? = null,
     val errorMessage: String? = null,
     val isHapticFeedbackEnabled: Boolean = false,
-    val cooldownSeconds: Long = 5L
+    val cooldownSeconds: Long = 5L,
+    val isHceEmittingEnabled: Boolean = false,
+    val hcePayloadType: String = "URL",
+    val hcePayloadContent: String = "https://github.com/NotAadhil/Tap_Tap",
+    val showHceConfigDialog: Boolean = false
 )
 
 class MainScreenViewModel(
@@ -86,6 +90,16 @@ class MainScreenViewModel(
     private val _cooldownSeconds = MutableStateFlow(
         preferences.getLong("tag_cooldown_ms", 5000L) / 1000L
     )
+    private val _isHceEmittingEnabled = MutableStateFlow(
+        preferences.getBoolean("hce_emit_enabled", false)
+    )
+    private val _hcePayloadType = MutableStateFlow(
+        preferences.getString("hce_payload_type", "URL") ?: "URL"
+    )
+    private val _hcePayloadContent = MutableStateFlow(
+        preferences.getString("hce_payload_content", "https://github.com/NotAadhil/Tap_Tap") ?: "https://github.com/NotAadhil/Tap_Tap"
+    )
+    private val _showHceConfigDialog = MutableStateFlow(false)
 
     val uiState: StateFlow<MainUiState> = combine(
         combine(
@@ -122,8 +136,16 @@ class MainScreenViewModel(
             _cooldownSeconds
         ) { apps, msg, err, haptic, cooldown ->
             Tuple5(apps, msg, err, haptic, cooldown)
+        },
+        combine(
+            _isHceEmittingEnabled,
+            _hcePayloadType,
+            _hcePayloadContent,
+            _showHceConfigDialog
+        ) { hceEnabled, hceType, hceContent, showHce ->
+            Tuple4(hceEnabled, hceType, hceContent, showHce)
         }
-    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err, haptic, cooldown) ->
+    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err, haptic, cooldown), (hceEnabled, hceType, hceContent, showHce) ->
         MainUiState(
             currentTab = tab,
             isNfcAvailable = nfcManager.isNfcAvailable,
@@ -145,7 +167,11 @@ class MainScreenViewModel(
             userMessage = msg,
             errorMessage = err,
             isHapticFeedbackEnabled = haptic,
-            cooldownSeconds = cooldown
+            cooldownSeconds = cooldown,
+            isHceEmittingEnabled = hceEnabled,
+            hcePayloadType = hceType,
+            hcePayloadContent = hceContent,
+            showHceConfigDialog = showHce
         )
     }.stateIn(
         viewModelScope,
@@ -154,7 +180,10 @@ class MainScreenViewModel(
             isNfcAvailable = nfcManager.isNfcAvailable,
             isNfcEnabled = nfcManager.isNfcEnabled,
             isHapticFeedbackEnabled = preferences.getBoolean("haptic_feedback_enabled", false),
-            cooldownSeconds = preferences.getLong("tag_cooldown_ms", 5000L) / 1000L
+            cooldownSeconds = preferences.getLong("tag_cooldown_ms", 5000L) / 1000L,
+            isHceEmittingEnabled = preferences.getBoolean("hce_emit_enabled", false),
+            hcePayloadType = preferences.getString("hce_payload_type", "URL") ?: "URL",
+            hcePayloadContent = preferences.getString("hce_payload_content", "https://github.com/NotAadhil/Tap_Tap") ?: "https://github.com/NotAadhil/Tap_Tap"
         )
     )
 
@@ -539,6 +568,33 @@ class MainScreenViewModel(
             executionLogRepository.clearHistory()
             _userMessage.value = "Execution history cleared"
         }
+    }
+
+    // --- Virtual NFC Beacon (HCE) Operations ---
+
+    fun toggleHceEmitting(enabled: Boolean) {
+        preferences.edit().putBoolean("hce_emit_enabled", enabled).apply()
+        _isHceEmittingEnabled.value = enabled
+        _userMessage.value = if (enabled) "Virtual NFC Beacon active: Emitting signal" else "Virtual NFC Beacon disabled"
+    }
+
+    fun updateHcePayload(type: String, content: String) {
+        preferences.edit()
+            .putString("hce_payload_type", type)
+            .putString("hce_payload_content", content)
+            .apply()
+        _hcePayloadType.value = type
+        _hcePayloadContent.value = content
+        _showHceConfigDialog.value = false
+        _userMessage.value = "Virtual NFC signal updated ($type)"
+    }
+
+    fun openHceConfigDialog() {
+        _showHceConfigDialog.value = true
+    }
+
+    fun closeHceConfigDialog() {
+        _showHceConfigDialog.value = false
     }
 
     // --- Settings Operations ---

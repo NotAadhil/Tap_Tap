@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
@@ -39,6 +41,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -1067,6 +1071,178 @@ fun SimulateTagDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Close")
+            }
+        }
+    )
+}
+
+/**
+ * Dialog for configuring the emitted Virtual NFC Type 4 Beacon signal.
+ */
+@Composable
+fun VirtualNfcConfigDialog(
+    currentType: String,
+    currentContent: String,
+    onDismiss: () -> Unit,
+    onSave: (type: String, content: String) -> Unit
+) {
+    var selectedType by remember { mutableStateOf(currentType) }
+    var contentText by remember { mutableStateOf(currentContent) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Sensors,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Virtual NFC Beacon", fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Broadcast an active NFC Type 4 Smart Card signal from your phone. Any phone tapping this device will read this payload directly.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = "Signal Payload Type",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = selectedType == "URL",
+                        onClick = {
+                            selectedType = "URL"
+                            if (contentText.isBlank() || !contentText.startsWith("http")) {
+                                contentText = "https://"
+                            }
+                            errorText = null
+                        },
+                        label = { Text("Web URL", fontSize = 12.sp) }
+                    )
+                    FilterChip(
+                        selected = selectedType == "TEXT",
+                        onClick = {
+                            selectedType = "TEXT"
+                            if (contentText.startsWith("http")) contentText = ""
+                            errorText = null
+                        },
+                        label = { Text("Text", fontSize = 12.sp) }
+                    )
+                    FilterChip(
+                        selected = selectedType == "TAPFLOW",
+                        onClick = {
+                            selectedType = "TAPFLOW"
+                            if (contentText.isBlank() || contentText.startsWith("http")) {
+                                contentText = "study_mode"
+                            }
+                            errorText = null
+                        },
+                        label = { Text("TapFlow Beacon", fontSize = 12.sp) }
+                    )
+                }
+
+                when (selectedType) {
+                    "URL" -> {
+                        OutlinedTextField(
+                            value = contentText,
+                            onValueChange = {
+                                contentText = it
+                                errorText = null
+                            },
+                            label = { Text("Website or Video URL") },
+                            placeholder = { Text("https://example.com") },
+                            singleLine = true,
+                            isError = errorText != null,
+                            supportingText = errorText?.let { { Text(it) } },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "When another phone taps this phone, their browser opens this link immediately.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    "TEXT" -> {
+                        OutlinedTextField(
+                            value = contentText,
+                            onValueChange = {
+                                contentText = it
+                                errorText = null
+                            },
+                            label = { Text("Note or Credentials") },
+                            placeholder = { Text("Enter text, Wi-Fi password, or contact note...") },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp, max = 140.dp)
+                        )
+                    }
+                    "TAPFLOW" -> {
+                        OutlinedTextField(
+                            value = contentText,
+                            onValueChange = {
+                                contentText = it
+                                errorText = null
+                            },
+                            label = { Text("TapFlow Trigger Token") },
+                            placeholder = { Text("e.g. study_mode or desk_switch") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "Broadcasts an application/vnd.tapflow NDEF record that triggers automations on other TapFlow devices.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (selectedType == "URL") {
+                        val validation = ActionValidator.validateUrl(contentText)
+                        if (validation != null) {
+                            errorText = validation
+                            return@Button
+                        }
+                    }
+                    if (contentText.isBlank()) {
+                        errorText = "Content cannot be empty"
+                        return@Button
+                    }
+                    onSave(selectedType, contentText.trim())
+                }
+            ) {
+                Text("Save Signal")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
             }
         }
     )
