@@ -12,6 +12,7 @@ data class RegisteredTagEntity(
     val displayName: String,
     val rawUidHex: String,
     val techList: String,
+    val automationId: Long? = null,
     val actionType: String = "OPEN_URL",
     val actionPayload: String = "",
     val registeredAt: Long = System.currentTimeMillis(),

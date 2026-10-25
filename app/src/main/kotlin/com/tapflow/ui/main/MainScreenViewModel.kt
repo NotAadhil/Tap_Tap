@@ -1,13 +1,20 @@
 package com.tapflow.ui.main
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tapflow.AppContainer
 import com.tapflow.automation.ActionResult
 import com.tapflow.automation.ActionValidator
-import com.tapflow.automation.SafeActionExecutor
+import com.tapflow.automation.AutomationAction
+import com.tapflow.automation.AutomationExecutor
+import com.tapflow.automation.InstalledAppInfo
+import com.tapflow.data.db.entity.AutomationEntity
+import com.tapflow.data.db.entity.ExecutionLogEntity
 import com.tapflow.data.db.entity.RegisteredTagEntity
+import com.tapflow.data.repository.AutomationRepository
+import com.tapflow.data.repository.ExecutionLogRepository
 import com.tapflow.data.repository.TagRepository
 import com.tapflow.nfc.NfcDispatchCoordinator
 import com.tapflow.nfc.NfcManager
@@ -21,40 +28,108 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class MainUiState(
+    val currentTab: AppTab = AppTab.HOME,
     val isNfcAvailable: Boolean = true,
     val isNfcEnabled: Boolean = true,
     val registeredTags: List<RegisteredTagEntity> = emptyList(),
+    val automations: List<AutomationEntity> = emptyList(),
+    val executionLogs: List<ExecutionLogEntity> = emptyList(),
     val activeScanEvent: ScanEvent? = null,
     val pendingRegistrationTag: TagData? = null,
+    val selectedTagForDetail: RegisteredTagEntity? = null,
+    val editingAutomation: AutomationEntity? = null,
+    val editingActions: List<AutomationAction> = emptyList(),
+    val showAutomationBuilder: Boolean = false,
+    val showActionPicker: Boolean = false,
+    val showActionConfig: Boolean = false,
+    val actionTypeToConfigure: String? = null,
+    val actionToEdit: AutomationAction? = null,
+    val installedApps: List<InstalledAppInfo> = emptyList(),
     val userMessage: String? = null,
     val errorMessage: String? = null
 )
 
 class MainScreenViewModel(
     private val tagRepository: TagRepository,
+    private val automationRepository: AutomationRepository,
+    private val executionLogRepository: ExecutionLogRepository,
+    private val automationExecutor: AutomationExecutor,
     private val nfcManager: NfcManager,
     private val coordinator: NfcDispatchCoordinator,
-    private val actionExecutor: SafeActionExecutor
+    private val context: Context
 ) : ViewModel() {
 
-    private val _userMessage = MutableStateFlow<String?>(null)
-    private val _errorMessage = MutableStateFlow<String?>(null)
+    private val _currentTab = MutableStateFlow(AppTab.HOME)
     private val _pendingRegistrationTag = MutableStateFlow<TagData?>(null)
     private val _currentScanEvent = MutableStateFlow<ScanEvent?>(null)
+    private val _selectedTagForDetail = MutableStateFlow<RegisteredTagEntity?>(null)
+
+    // Automation Builder states
+    private val _editingAutomation = MutableStateFlow<AutomationEntity?>(null)
+    private val _editingActions = MutableStateFlow<List<AutomationAction>>(emptyList())
+    private val _showAutomationBuilder = MutableStateFlow(false)
+    private val _showActionPicker = MutableStateFlow(false)
+    private val _showActionConfig = MutableStateFlow(false)
+    private val _actionTypeToConfigure = MutableStateFlow<String?>(null)
+    private val _actionToEdit = MutableStateFlow<AutomationAction?>(null)
+
+    private val _installedApps = MutableStateFlow<List<InstalledAppInfo>>(emptyList())
+    private val _userMessage = MutableStateFlow<String?>(null)
+    private val _errorMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<MainUiState> = combine(
-        tagRepository.allTagsFlow,
-        _currentScanEvent,
-        _pendingRegistrationTag,
-        _userMessage,
-        _errorMessage
-    ) { tags, scanEvent, pendingTag, msg, err ->
+        combine(
+            _currentTab,
+            tagRepository.allTagsFlow,
+            automationRepository.getAllAutomationsFlow(),
+            executionLogRepository.getRecentLogsFlow()
+        ) { tab, tags, autos, logs ->
+            Tuple4(tab, tags, autos, logs)
+        },
+        combine(
+            _currentScanEvent,
+            _pendingRegistrationTag,
+            _selectedTagForDetail,
+            _editingAutomation,
+            _editingActions
+        ) { scan, pending, detail, editAuto, actions ->
+            Tuple5(scan, pending, detail, editAuto, actions)
+        },
+        combine(
+            _showAutomationBuilder,
+            _showActionPicker,
+            _showActionConfig,
+            _actionTypeToConfigure,
+            _actionToEdit
+        ) { showBuilder, showPicker, showConfig, actionType, actionEdit ->
+            Tuple5(showBuilder, showPicker, showConfig, actionType, actionEdit)
+        },
+        combine(
+            _installedApps,
+            _userMessage,
+            _errorMessage
+        ) { apps, msg, err ->
+            Triple(apps, msg, err)
+        }
+    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err) ->
         MainUiState(
+            currentTab = tab,
             isNfcAvailable = nfcManager.isNfcAvailable,
             isNfcEnabled = nfcManager.isNfcEnabled,
             registeredTags = tags,
-            activeScanEvent = scanEvent,
-            pendingRegistrationTag = pendingTag,
+            automations = autos,
+            executionLogs = logs,
+            activeScanEvent = scan,
+            pendingRegistrationTag = pending,
+            selectedTagForDetail = detail,
+            editingAutomation = editAuto,
+            editingActions = actions,
+            showAutomationBuilder = showBuilder,
+            showActionPicker = showPicker,
+            showActionConfig = showConfig,
+            actionTypeToConfigure = actionType,
+            actionToEdit = actionEdit,
+            installedApps = apps,
             userMessage = msg,
             errorMessage = err
         )
@@ -68,6 +143,7 @@ class MainScreenViewModel(
     )
 
     init {
+        // Collect NFC scan events
         viewModelScope.launch {
             coordinator.scanEvents.collect { event ->
                 _currentScanEvent.value = event
@@ -83,6 +159,7 @@ class MainScreenViewModel(
                         val resultStr = when (val r = event.result) {
                             is ActionResult.Success -> r.message
                             is ActionResult.Failure -> "Failed: ${r.reason}"
+                            is ActionResult.Skipped -> "Skipped: ${r.reason}"
                         }
                         _userMessage.value = "Triggered ${event.tag.displayName}: $resultStr"
                     }
@@ -92,9 +169,27 @@ class MainScreenViewModel(
                 }
             }
         }
+
+        // Collect message events from AutomationExecutor (ShowMessage)
+        viewModelScope.launch {
+            automationExecutor.messageEvents.collect { msg ->
+                _userMessage.value = msg
+            }
+        }
+
+        // Query installed launcher applications in background
+        viewModelScope.launch {
+            _installedApps.value = InstalledAppInfo.queryLauncherApps(context)
+        }
     }
 
-    fun registerPendingTag(displayName: String, url: String) {
+    fun selectTab(tab: AppTab) {
+        _currentTab.value = tab
+    }
+
+    // --- Tag Operations ---
+
+    fun registerPendingTag(displayName: String, automationId: Long?, url: String) {
         val pending = _pendingRegistrationTag.value ?: return
 
         val nameError = ActionValidator.validateTagName(displayName)
@@ -103,10 +198,12 @@ class MainScreenViewModel(
             return
         }
 
-        val urlError = ActionValidator.validateUrl(url)
-        if (urlError != null) {
-            _errorMessage.value = urlError
-            return
+        if (automationId == null && url.isNotBlank()) {
+            val urlError = ActionValidator.validateUrl(url)
+            if (urlError != null) {
+                _errorMessage.value = urlError
+                return
+            }
         }
 
         viewModelScope.launch {
@@ -115,6 +212,7 @@ class MainScreenViewModel(
                 displayName = displayName,
                 rawUidHex = pending.rawUidHex,
                 techList = pending.techList.joinToString(","),
+                automationId = automationId,
                 actionType = "OPEN_URL",
                 actionPayload = url
             )
@@ -136,22 +234,209 @@ class MainScreenViewModel(
         _pendingRegistrationTag.value = null
     }
 
+    fun openTagDetail(tag: RegisteredTagEntity) {
+        _selectedTagForDetail.value = tag
+    }
+
+    fun closeTagDetail() {
+        _selectedTagForDetail.value = null
+    }
+
+    fun updateTagName(tagKey: String, newName: String) {
+        val nameError = ActionValidator.validateTagName(newName)
+        if (nameError != null) {
+            _errorMessage.value = nameError
+            return
+        }
+        viewModelScope.launch {
+            tagRepository.updateDisplayName(tagKey, newName)
+            _selectedTagForDetail.value = _selectedTagForDetail.value?.copy(displayName = newName)
+            _userMessage.value = "Renamed tag to \"$newName\""
+        }
+    }
+
+    fun toggleTagEnabled(tagKey: String, isEnabled: Boolean) {
+        viewModelScope.launch {
+            tagRepository.updateEnabled(tagKey, isEnabled)
+            _selectedTagForDetail.value = _selectedTagForDetail.value?.copy(isEnabled = isEnabled)
+            _userMessage.value = if (isEnabled) "Tag enabled" else "Tag disabled"
+        }
+    }
+
+    fun assignAutomationToTag(tagKey: String, automationId: Long?) {
+        viewModelScope.launch {
+            tagRepository.updateAutomationId(tagKey, automationId)
+            _selectedTagForDetail.value = _selectedTagForDetail.value?.copy(automationId = automationId)
+            _userMessage.value = if (automationId != null) "Automation linked!" else "Automation unlinked"
+        }
+    }
+
     fun deleteTag(tag: RegisteredTagEntity) {
         viewModelScope.launch {
             tagRepository.deleteTag(tag)
+            if (_selectedTagForDetail.value?.tagKey == tag.tagKey) {
+                _selectedTagForDetail.value = null
+            }
             _userMessage.value = "Deleted tag \"${tag.displayName}\""
         }
     }
 
-    fun testAction(tag: RegisteredTagEntity) {
+    // --- Automation Builder Operations ---
+
+    fun openNewAutomationBuilder() {
+        _editingAutomation.value = AutomationEntity(name = "New Automation")
+        _editingActions.value = emptyList()
+        _showAutomationBuilder.value = true
+    }
+
+    fun openEditAutomationBuilder(automation: AutomationEntity) {
         viewModelScope.launch {
-            val result = actionExecutor.executeAction(tag.actionType, tag.actionPayload)
-            when (result) {
-                is ActionResult.Success -> _userMessage.value = result.message
-                is ActionResult.Failure -> _errorMessage.value = result.reason
-            }
+            _editingAutomation.value = automation
+            _editingActions.value = automationRepository.getActions(automation.id)
+            _showAutomationBuilder.value = true
         }
     }
+
+    fun closeAutomationBuilder() {
+        _showAutomationBuilder.value = false
+        _editingAutomation.value = null
+        _editingActions.value = emptyList()
+    }
+
+    fun openActionPicker() {
+        _showActionPicker.value = true
+    }
+
+    fun closeActionPicker() {
+        _showActionPicker.value = false
+    }
+
+    fun selectActionTypeToConfigure(type: String) {
+        _showActionPicker.value = false
+        _actionTypeToConfigure.value = type
+        _actionToEdit.value = null
+        _showActionConfig.value = true
+    }
+
+    fun openEditAction(action: AutomationAction) {
+        _actionToEdit.value = action
+        _actionTypeToConfigure.value = when (action) {
+            is AutomationAction.OpenApp -> "OPEN_APP"
+            is AutomationAction.OpenUrl -> "OPEN_URL"
+            is AutomationAction.ShowNotification -> "SHOW_NOTIFICATION"
+            is AutomationAction.ShowMessage -> "SHOW_MESSAGE"
+        }
+        _showActionConfig.value = true
+    }
+
+    fun closeActionConfig() {
+        _showActionConfig.value = false
+        _actionTypeToConfigure.value = null
+        _actionToEdit.value = null
+    }
+
+    fun saveConfiguredAction(action: AutomationAction) {
+        val currentList = _editingActions.value.toMutableList()
+        val editTarget = _actionToEdit.value
+        if (editTarget != null) {
+            val index = currentList.indexOfFirst { it.id == editTarget.id && it.sortOrder == editTarget.sortOrder }
+            if (index != -1) {
+                currentList[index] = action
+            } else {
+                currentList.add(action)
+            }
+        } else {
+            currentList.add(action)
+        }
+        _editingActions.value = currentList
+        closeActionConfig()
+    }
+
+    fun moveActionUp(index: Int) {
+        if (index <= 0) return
+        val list = _editingActions.value.toMutableList()
+        val item = list.removeAt(index)
+        list.add(index - 1, item)
+        _editingActions.value = list
+    }
+
+    fun moveActionDown(index: Int) {
+        val list = _editingActions.value.toMutableList()
+        if (index >= list.size - 1) return
+        val item = list.removeAt(index)
+        list.add(index + 1, item)
+        _editingActions.value = list
+    }
+
+    fun toggleActionEnabled(index: Int, isEnabled: Boolean) {
+        val list = _editingActions.value.toMutableList()
+        if (index in list.indices) {
+            val item = list[index]
+            val updated = when (item) {
+                is AutomationAction.OpenApp -> item.copy(isEnabled = isEnabled)
+                is AutomationAction.OpenUrl -> item.copy(isEnabled = isEnabled)
+                is AutomationAction.ShowNotification -> item.copy(isEnabled = isEnabled)
+                is AutomationAction.ShowMessage -> item.copy(isEnabled = isEnabled)
+            }
+            list[index] = updated
+            _editingActions.value = list
+        }
+    }
+
+    fun removeAction(index: Int) {
+        val list = _editingActions.value.toMutableList()
+        if (index in list.indices) {
+            list.removeAt(index)
+            _editingActions.value = list
+        }
+    }
+
+    fun saveCurrentAutomation(name: String) {
+        if (name.isBlank()) {
+            _errorMessage.value = "Enter an automation name"
+            return
+        }
+        val current = _editingAutomation.value ?: return
+        val actions = _editingActions.value
+
+        viewModelScope.launch {
+            val updatedAutomation = current.copy(name = name.trim())
+            automationRepository.saveAutomation(updatedAutomation, actions)
+            _userMessage.value = "Saved automation \"${updatedAutomation.name}\""
+            closeAutomationBuilder()
+        }
+    }
+
+    fun testCurrentAutomation() {
+        val actions = _editingActions.value
+        if (actions.isEmpty()) {
+            _userMessage.value = "Add at least one action to test"
+            return
+        }
+        viewModelScope.launch {
+            val results = automationExecutor.execute("TEST_PREVIEW", actions)
+            val successCount = results.count { it is ActionResult.Success }
+            _userMessage.value = "Executed test: $successCount/${actions.size} actions succeeded"
+        }
+    }
+
+    fun deleteAutomation(automation: AutomationEntity) {
+        viewModelScope.launch {
+            automationRepository.deleteAutomation(automation.id)
+            _userMessage.value = "Deleted automation \"${automation.name}\""
+        }
+    }
+
+    // --- History Operations ---
+
+    fun clearExecutionHistory() {
+        viewModelScope.launch {
+            executionLogRepository.clearHistory()
+            _userMessage.value = "Execution history cleared"
+        }
+    }
+
+    // --- Simulator & Testing ---
 
     fun simulateTag(tagData: TagData) {
         nfcManager.simulateTag(tagData)
@@ -167,10 +452,17 @@ class MainScreenViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return MainScreenViewModel(
                 tagRepository = container.tagRepository,
+                automationRepository = container.automationRepository,
+                executionLogRepository = container.executionLogRepository,
+                automationExecutor = container.automationExecutor,
                 nfcManager = container.nfcManager,
                 coordinator = container.coordinator,
-                actionExecutor = container.actionExecutor
+                context = container.context
             ) as T
         }
     }
 }
+
+// Helper tuples for combine()
+private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
+private data class Tuple5<A, B, C, D, E>(val a: A, val b: B, val c: C, val d: D, val e: E)

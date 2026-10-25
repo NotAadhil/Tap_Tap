@@ -1,0 +1,413 @@
+package com.tapflow.ui.screens.automations
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.tapflow.automation.AutomationAction
+import com.tapflow.data.db.entity.AutomationEntity
+
+@Composable
+fun AutomationScreenContent(
+    automations: List<AutomationEntity>,
+    onNewAutomation: () -> Unit,
+    onEditAutomation: (AutomationEntity) -> Unit,
+    onDeleteAutomation: (AutomationEntity) -> Unit
+) {
+    var automationToDelete by remember { mutableStateOf<AutomationEntity?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Automations (${automations.size})",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Button(
+                onClick = onNewAutomation,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Text("+ New Automation", fontSize = 13.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (automations.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 60.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("⚙️", fontSize = 48.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "No automations created yet",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Create reusable multi-action sequences (e.g. open apps, load URLs, show notifications) and link them to any NFC tag.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = onNewAutomation) {
+                        Text("Create Your First Automation")
+                    }
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(automations, key = { it.id }) { auto ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onEditAutomation(auto) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(42.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("⚙️", fontSize = 20.sp)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = auto.name,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                                Text(
+                                    text = if (auto.isEnabled) "Active sequence • Tap to edit" else "Disabled sequence",
+                                    fontSize = 12.sp,
+                                    color = if (auto.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                )
+                            }
+
+                            IconButton(onClick = { automationToDelete = auto }) {
+                                Text("🗑️", fontSize = 16.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    automationToDelete?.let { auto ->
+        AlertDialog(
+            onDismissRequest = { automationToDelete = null },
+            title = { Text("Delete Automation?") },
+            text = { Text("Delete '${auto.name}'? Tags assigned to this automation will be unlinked.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteAutomation(auto)
+                        automationToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { automationToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Visual Automation Builder dialog: configure action sequence, reorder steps, test run, and save.
+ */
+@Composable
+fun AutomationBuilderDialog(
+    automation: AutomationEntity,
+    actions: List<AutomationAction>,
+    onDismiss: () -> Unit,
+    onAddAction: () -> Unit,
+    onEditAction: (AutomationAction) -> Unit,
+    onMoveUp: (Int) -> Unit,
+    onMoveDown: (Int) -> Unit,
+    onToggleAction: (Int, Boolean) -> Unit,
+    onRemoveAction: (Int) -> Unit,
+    onTestRun: () -> Unit,
+    onSave: (name: String) -> Unit
+) {
+    var name by remember { mutableStateOf(automation.name) }
+    var nameError by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("⚙️", fontSize = 18.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Automation Builder", fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it
+                        nameError = null
+                    },
+                    label = { Text("Automation Name") },
+                    placeholder = { Text("e.g. Study Mode, Workout Routine") },
+                    isError = nameError != null,
+                    supportingText = nameError?.let { { Text(it) } },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Ordered Actions (${actions.size})",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+
+                    FilledTonalButton(
+                        onClick = onAddAction,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                    ) {
+                        Text("+ Add Step", fontSize = 12.sp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (actions.isEmpty()) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("No actions in sequence", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                            Text(
+                                "Tap '+ Add Step' to choose an app, URL, notification, or message.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 260.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        itemsIndexed(actions) { index, action ->
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (action.isEnabled) MaterialTheme.colorScheme.surfaceVariant
+                                    else Color(0xFFF0F0F0)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${index + 1}.",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.width(20.dp)
+                                    )
+
+                                    val icon = when (action) {
+                                        is AutomationAction.OpenApp -> "📱"
+                                        is AutomationAction.OpenUrl -> "🌐"
+                                        is AutomationAction.ShowNotification -> "🔔"
+                                        is AutomationAction.ShowMessage -> "💬"
+                                    }
+
+                                    Text(icon, fontSize = 16.sp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { onEditAction(action) }
+                                    ) {
+                                        Text(
+                                            text = action.describe(),
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 13.sp
+                                        )
+                                    }
+
+                                    // Up/Down reordering controls
+                                    if (index > 0) {
+                                        Text(
+                                            text = "▲",
+                                            fontSize = 12.sp,
+                                            modifier = Modifier
+                                                .clickable { onMoveUp(index) }
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    if (index < actions.size - 1) {
+                                        Text(
+                                            text = "▼",
+                                            fontSize = 12.sp,
+                                            modifier = Modifier
+                                                .clickable { onMoveDown(index) }
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+
+                                    Switch(
+                                        checked = action.isEnabled,
+                                        onCheckedChange = { onToggleAction(index, it) },
+                                        modifier = Modifier.padding(start = 4.dp)
+                                    )
+
+                                    IconButton(
+                                        onClick = { onRemoveAction(index) },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (actions.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = onTestRun,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("▶ Test Automation Now")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isBlank()) {
+                        nameError = "Enter an automation name"
+                        return@Button
+                    }
+                    onSave(name)
+                }
+            ) {
+                Text("Save Automation")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}

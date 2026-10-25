@@ -6,9 +6,15 @@ import com.tapflow.ui.main.MainScreen
 import com.tapflow.ui.main.MainScreenViewModel
 
 @Composable
-fun MainNavigation(container: AppContainer) {
+fun MainNavigation(
+    container: AppContainer,
+    onRequestNotificationPermission: () -> Unit = {}
+) {
     val viewModel: MainScreenViewModel = viewModel(
         factory = MainScreenViewModel.Factory(container)
     )
-    MainScreen(viewModel = viewModel)
+    MainScreen(
+        viewModel = viewModel,
+        onRequestNotificationPermission = onRequestNotificationPermission
+    )
 }

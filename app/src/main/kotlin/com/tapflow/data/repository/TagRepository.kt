@@ -7,11 +7,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
 /**
- * Repository handling tag persistence and duplicate validation.
+ * Repository handling tag persistence, automation assignment, and duplicate validation.
  */
 class TagRepository(private val tagDao: RegisteredTagDao) {
 
     val allTagsFlow: Flow<List<RegisteredTagEntity>> = tagDao.getAllTagsFlow()
+    val tagCountFlow: Flow<Int> = tagDao.getTagCountFlow()
 
     suspend fun getTag(tagKey: String): RegisteredTagEntity? = withContext(Dispatchers.IO) {
         tagDao.findByTagKey(tagKey)
@@ -26,6 +27,7 @@ class TagRepository(private val tagDao: RegisteredTagDao) {
         displayName: String,
         rawUidHex: String,
         techList: String,
+        automationId: Long? = null,
         actionType: String = "OPEN_URL",
         actionPayload: String = ""
     ): Result<RegisteredTagEntity> = withContext(Dispatchers.IO) {
@@ -40,6 +42,7 @@ class TagRepository(private val tagDao: RegisteredTagDao) {
             displayName = displayName.trim(),
             rawUidHex = rawUidHex,
             techList = techList,
+            automationId = automationId,
             actionType = actionType,
             actionPayload = actionPayload.trim(),
             registeredAt = System.currentTimeMillis(),
@@ -47,6 +50,18 @@ class TagRepository(private val tagDao: RegisteredTagDao) {
         )
         tagDao.insert(entity)
         Result.success(entity)
+    }
+
+    suspend fun updateDisplayName(tagKey: String, newName: String) = withContext(Dispatchers.IO) {
+        tagDao.updateDisplayName(tagKey, newName.trim())
+    }
+
+    suspend fun updateAutomationId(tagKey: String, automationId: Long?) = withContext(Dispatchers.IO) {
+        tagDao.updateAutomationId(tagKey, automationId)
+    }
+
+    suspend fun updateEnabled(tagKey: String, isEnabled: Boolean) = withContext(Dispatchers.IO) {
+        tagDao.updateEnabled(tagKey, isEnabled)
     }
 
     suspend fun updateTag(tag: RegisteredTagEntity) = withContext(Dispatchers.IO) {

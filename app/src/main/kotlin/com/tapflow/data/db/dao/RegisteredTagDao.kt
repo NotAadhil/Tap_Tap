@@ -24,11 +24,23 @@ interface RegisteredTagDao {
     @Query("SELECT COUNT(*) FROM registered_tags WHERE tagKey = :tagKey")
     suspend fun countByTagKey(tagKey: String): Int
 
+    @Query("SELECT COUNT(*) FROM registered_tags")
+    fun getTagCountFlow(): Flow<Int>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(tag: RegisteredTagEntity)
 
     @Update
     suspend fun update(tag: RegisteredTagEntity)
+
+    @Query("UPDATE registered_tags SET displayName = :displayName WHERE tagKey = :tagKey")
+    suspend fun updateDisplayName(tagKey: String, displayName: String)
+
+    @Query("UPDATE registered_tags SET automationId = :automationId WHERE tagKey = :tagKey")
+    suspend fun updateAutomationId(tagKey: String, automationId: Long?)
+
+    @Query("UPDATE registered_tags SET isEnabled = :isEnabled WHERE tagKey = :tagKey")
+    suspend fun updateEnabled(tagKey: String, isEnabled: Boolean)
 
     @Delete
     suspend fun delete(tag: RegisteredTagEntity)

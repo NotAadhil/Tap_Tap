@@ -103,6 +103,8 @@ private class FakeRegisteredTagDao : RegisteredTagDao {
 
     override fun getAllTagsFlow(): Flow<List<RegisteredTagEntity>> = _tagsFlow
 
+    override fun getTagCountFlow(): Flow<Int> = kotlinx.coroutines.flow.flow { emit(tags.size) }
+
     override suspend fun findByTagKey(tagKey: String): RegisteredTagEntity? = tags[tagKey]
 
     override suspend fun countByTagKey(tagKey: String): Int = if (tags.containsKey(tagKey)) 1 else 0
@@ -118,6 +120,27 @@ private class FakeRegisteredTagDao : RegisteredTagDao {
     override suspend fun update(tag: RegisteredTagEntity) {
         tags[tag.tagKey] = tag
         emitUpdate()
+    }
+
+    override suspend fun updateDisplayName(tagKey: String, displayName: String) {
+        tags[tagKey]?.let {
+            tags[tagKey] = it.copy(displayName = displayName)
+            emitUpdate()
+        }
+    }
+
+    override suspend fun updateAutomationId(tagKey: String, automationId: Long?) {
+        tags[tagKey]?.let {
+            tags[tagKey] = it.copy(automationId = automationId)
+            emitUpdate()
+        }
+    }
+
+    override suspend fun updateEnabled(tagKey: String, isEnabled: Boolean) {
+        tags[tagKey]?.let {
+            tags[tagKey] = it.copy(isEnabled = isEnabled)
+            emitUpdate()
+        }
     }
 
     override suspend fun delete(tag: RegisteredTagEntity) {

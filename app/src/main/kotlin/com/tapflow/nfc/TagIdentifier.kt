@@ -79,4 +79,9 @@ object TagIdentifier {
             isPaymentCard = isPayment
         )
     }
+
+    /**
+     * Alias for [parse] to support alternative naming.
+     */
+    fun identify(id: ByteArray?, techArray: Array<String>?): TagData = parse(id, techArray)
 }

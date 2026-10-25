@@ -1,8 +1,14 @@
 package com.tapflow.nfc
 
+import android.content.Context
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.tapflow.automation.ActionResult
-import com.tapflow.automation.SafeActionExecutor
+import com.tapflow.automation.AutomationAction
+import com.tapflow.automation.AutomationExecutor
 import com.tapflow.data.db.entity.RegisteredTagEntity
+import com.tapflow.data.repository.AutomationRepository
+import com.tapflow.data.repository.ExecutionLogRepository
 import com.tapflow.data.repository.TagRepository
 import com.tapflow.nfc.model.TagData
 import kotlinx.coroutines.CoroutineScope
@@ -16,7 +22,8 @@ sealed interface ScanEvent {
     data class Matched(
         val tag: RegisteredTagEntity,
         val result: ActionResult,
-        val isExecuted: Boolean
+        val isExecuted: Boolean,
+        val allResults: List<ActionResult> = listOf(result)
     ) : ScanEvent
 
     data class Unregistered(
@@ -35,11 +42,14 @@ sealed interface ScanEvent {
 
 /**
  * Coordinates incoming tag reads: matches against registered tags in local persistence,
- * enforces debounce guards, and delegates to the action executor.
+ * enforces debounce guards, runs automation sequences, and records execution history.
  */
 class NfcDispatchCoordinator(
     private val tagRepository: TagRepository,
-    private val actionExecutor: SafeActionExecutor,
+    private val automationRepository: AutomationRepository,
+    private val automationExecutor: AutomationExecutor,
+    private val executionLogRepository: ExecutionLogRepository,
+    private val context: Context,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
 ) {
     private val _scanEvents = MutableSharedFlow<ScanEvent>(replay = 1)
@@ -78,12 +88,13 @@ class NfcDispatchCoordinator(
 
             if (registeredTag == null) {
                 _scanEvents.emit(ScanEvent.Unregistered(tagData))
+                postUnknownTagNotification(tagData)
             } else {
                 if (!registeredTag.isEnabled) {
                     _scanEvents.emit(
                         ScanEvent.Matched(
                             tag = registeredTag,
-                            result = ActionResult.Failure("Tag is disabled."),
+                            result = ActionResult.Failure(reason = "Tag '${registeredTag.displayName}' is disabled."),
                             isExecuted = false
                         )
                     )
@@ -100,20 +111,95 @@ class NfcDispatchCoordinator(
                 lastTagKey = registeredTag.tagKey
                 lastExecutionTimeMs = now
 
-                // Execute safe demonstrable action
-                val actionResult = actionExecutor.executeAction(
-                    actionType = registeredTag.actionType,
-                    actionPayload = registeredTag.actionPayload
-                )
+                val startTime = System.currentTimeMillis()
 
-                _scanEvents.emit(
-                    ScanEvent.Matched(
-                        tag = registeredTag,
-                        result = actionResult,
-                        isExecuted = true
+                // Check for multi-action automation sequence
+                if (registeredTag.automationId != null) {
+                    val automation = automationRepository.getAutomationById(registeredTag.automationId)
+                    if (automation != null && automation.isEnabled) {
+                        val actions = automationRepository.getActions(automation.id)
+                        if (actions.isNotEmpty()) {
+                            val results = automationExecutor.execute(registeredTag.tagKey, actions)
+                            val duration = System.currentTimeMillis() - startTime
+                            executionLogRepository.recordExecution(
+                                tagKey = registeredTag.tagKey,
+                                tagDisplayName = registeredTag.displayName,
+                                automationName = automation.name,
+                                durationMs = duration,
+                                results = results
+                            )
+
+                            val primaryResult = results.firstOrNull { it is ActionResult.Failure }
+                                ?: results.firstOrNull()
+                                ?: ActionResult.Success(message = "Executed ${actions.size} actions for '${automation.name}'")
+
+                            _scanEvents.emit(
+                                ScanEvent.Matched(
+                                    tag = registeredTag,
+                                    result = primaryResult,
+                                    isExecuted = true,
+                                    allResults = results
+                                )
+                            )
+                            return@launch
+                        }
+                    }
+                }
+
+                // Fallback to single action (e.g. OPEN_URL)
+                if (registeredTag.actionPayload.isNotBlank()) {
+                    val singleAction = AutomationAction.OpenUrl(
+                        id = 1,
+                        automationId = 0,
+                        url = registeredTag.actionPayload
                     )
-                )
+                    val results = automationExecutor.execute(registeredTag.tagKey, listOf(singleAction))
+                    val duration = System.currentTimeMillis() - startTime
+                    val primaryResult = results.firstOrNull()
+                        ?: ActionResult.Success(message = "Executed action for '${registeredTag.displayName}'")
+
+                    executionLogRepository.recordExecution(
+                        tagKey = registeredTag.tagKey,
+                        tagDisplayName = registeredTag.displayName,
+                        automationName = "Quick Action",
+                        durationMs = duration,
+                        results = results
+                    )
+
+                    _scanEvents.emit(
+                        ScanEvent.Matched(
+                            tag = registeredTag,
+                            result = primaryResult,
+                            isExecuted = true,
+                            allResults = results
+                        )
+                    )
+                } else {
+                    _scanEvents.emit(
+                        ScanEvent.Matched(
+                            tag = registeredTag,
+                            result = ActionResult.Success(message = "Scanned '${registeredTag.displayName}', but no actions assigned yet."),
+                            isExecuted = false
+                        )
+                    )
+                }
             }
+        }
+    }
+
+    private fun postUnknownTagNotification(tagData: TagData) {
+        try {
+            val notification = NotificationCompat.Builder(context, "tapflow_automations")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("New NFC Tag Detected")
+                .setContentText("Tap to register '${tagData.tagKey.take(12)}...' in TapFlow")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true)
+                .build()
+
+            NotificationManagerCompat.from(context).notify(999, notification)
+        } catch (_: Exception) {
+            // Notifications may be denied or blocked
         }
     }
 }
