@@ -14,8 +14,13 @@ class TagRepository(private val tagDao: RegisteredTagDao) {
     val allTagsFlow: Flow<List<RegisteredTagEntity>> = tagDao.getAllTagsFlow()
     val tagCountFlow: Flow<Int> = tagDao.getTagCountFlow()
 
-    suspend fun getTag(tagKey: String): RegisteredTagEntity? = withContext(Dispatchers.IO) {
-        tagDao.findByTagKey(tagKey)
+    suspend fun getTag(tagKey: String, rawUidHex: String? = null): RegisteredTagEntity? = withContext(Dispatchers.IO) {
+        val exact = tagDao.findByTagKey(tagKey)
+        if (exact != null) return@withContext exact
+        if (!rawUidHex.isNullOrBlank()) {
+            return@withContext tagDao.findByTagKeyOrUid(tagKey, rawUidHex)
+        }
+        null
     }
 
     suspend fun isDuplicate(tagKey: String): Boolean = withContext(Dispatchers.IO) {

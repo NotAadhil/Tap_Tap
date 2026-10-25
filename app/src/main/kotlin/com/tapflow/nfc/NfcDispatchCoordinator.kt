@@ -59,8 +59,9 @@ class NfcDispatchCoordinator(
     val scanEvents: SharedFlow<ScanEvent> = _scanEvents.asSharedFlow()
 
     private var lastTagKey: String? = null
+    private var lastRawUid: String? = null
     private var lastExecutionTimeMs: Long = 0L
-    private val debounceWindowMs: Long = 500L
+    private val debounceWindowMs: Long = 2000L
 
     fun onTagDetected(tagData: TagData) {
         scope.launch {
@@ -86,8 +87,8 @@ class NfcDispatchCoordinator(
                 return@launch
             }
 
-            // Match against registered tags in database
-            val registeredTag = tagRepository.getTag(tagData.tagKey)
+            // Match against registered tags in database (by composite key or raw UID fallback)
+            val registeredTag = tagRepository.getTag(tagData.tagKey, tagData.rawUidHex)
 
             if (registeredTag == null) {
                 _scanEvents.emit(ScanEvent.Unregistered(tagData))
@@ -104,14 +105,17 @@ class NfcDispatchCoordinator(
                     return@launch
                 }
 
-                // Debounce check
+                // Debounce check - 2 second cooldown across both tagKey and raw UID
                 val now = System.currentTimeMillis()
-                if (registeredTag.tagKey.equals(lastTagKey, ignoreCase = true) && (now - lastExecutionTimeMs) < debounceWindowMs) {
+                val isSameTag = registeredTag.tagKey.equals(lastTagKey, ignoreCase = true) ||
+                        registeredTag.rawUidHex.equals(lastRawUid, ignoreCase = true)
+                if (isSameTag && (now - lastExecutionTimeMs) < debounceWindowMs) {
                     _scanEvents.emit(ScanEvent.Debounced(registeredTag))
                     return@launch
                 }
 
                 lastTagKey = registeredTag.tagKey
+                lastRawUid = registeredTag.rawUidHex
                 lastExecutionTimeMs = now
 
                 val startTime = System.currentTimeMillis()

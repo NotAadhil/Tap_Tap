@@ -21,6 +21,9 @@ interface RegisteredTagDao {
     @Query("SELECT * FROM registered_tags WHERE tagKey = :tagKey LIMIT 1")
     suspend fun findByTagKey(tagKey: String): RegisteredTagEntity?
 
+    @Query("SELECT * FROM registered_tags WHERE tagKey = :tagKey OR rawUidHex = :rawUid LIMIT 1")
+    suspend fun findByTagKeyOrUid(tagKey: String, rawUid: String): RegisteredTagEntity?
+
     @Query("SELECT COUNT(*) FROM registered_tags WHERE tagKey = :tagKey")
     suspend fun countByTagKey(tagKey: String): Int
 

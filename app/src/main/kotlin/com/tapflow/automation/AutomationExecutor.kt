@@ -30,7 +30,7 @@ class AutomationExecutor(
 
     private var lastExecutedTagKey: String = ""
     private var lastExecutedAt: Long = 0L
-    private val debounceMs = 500L
+    private val debounceMs = 2000L
 
     suspend fun execute(tagKey: String, actions: List<AutomationAction>): List<ActionResult> {
         val now = System.currentTimeMillis()
@@ -39,7 +39,7 @@ class AutomationExecutor(
                 ActionResult.Skipped(
                     actionId = 0,
                     description = "Sequence Debounce",
-                    reason = "Ignored rapid tap (< 500ms)"
+                    reason = "Ignored rapid tap (< 2000ms)"
                 )
             )
         }
@@ -75,20 +75,32 @@ class AutomationExecutor(
                 val pm = context.packageManager
                 val intent = pm.getLaunchIntentForPackage(action.packageName)
                     ?: throw IllegalStateException("App '${action.appDisplayName}' (${action.packageName}) is not installed.")
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+
+                val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    android.app.ActivityOptions.makeBasic().apply {
+                        setPendingIntentBackgroundActivityStartMode(
+                            android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                        )
+                    }
+                } else null
+
+                context.startActivity(intent, options?.toBundle())
             }
 
             is AutomationAction.OpenUrl -> {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(action.url)).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                if (intent.resolveActivity(context.packageManager) != null) {
-                    context.startActivity(intent)
-                } else {
-                    // Fallback attempt
-                    context.startActivity(intent)
-                }
+                val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    android.app.ActivityOptions.makeBasic().apply {
+                        setPendingIntentBackgroundActivityStartMode(
+                            android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                        )
+                    }
+                } else null
+
+                context.startActivity(intent, options?.toBundle())
             }
 
             is AutomationAction.ShowNotification -> {

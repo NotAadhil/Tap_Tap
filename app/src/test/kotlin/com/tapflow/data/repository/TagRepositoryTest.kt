@@ -107,6 +107,9 @@ private class FakeRegisteredTagDao : RegisteredTagDao {
 
     override suspend fun findByTagKey(tagKey: String): RegisteredTagEntity? = tags[tagKey]
 
+    override suspend fun findByTagKeyOrUid(tagKey: String, rawUid: String): RegisteredTagEntity? =
+        tags[tagKey] ?: tags.values.firstOrNull { it.rawUidHex.equals(rawUid, ignoreCase = true) }
+
     override suspend fun countByTagKey(tagKey: String): Int = if (tags.containsKey(tagKey)) 1 else 0
 
     override suspend fun insert(tag: RegisteredTagEntity) {

@@ -44,21 +44,21 @@
             </intent-filter>
 
             <!-- 1. Manifest filter for custom TapFlow NDEF tags -->
-            <intent-filter>
+            <intent-filter android:priority="999">
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/vnd.tapflow" />
             </intent-filter>
 
             <!-- 2. Catch-all NDEF MIME types (e.g. text/plain, etc.) -->
-            <intent-filter>
+            <intent-filter android:priority="999">
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
             </intent-filter>
 
             <!-- 3. Web URL NDEF tags (http / https) -->
-            <intent-filter>
+            <intent-filter android:priority="999">
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="http" />
@@ -66,7 +66,7 @@
             </intent-filter>
 
             <!-- 4. Raw Hardware Tech Discovered (NfcA, NfcB, Mifare, IsoDep, etc.) -->
-            <intent-filter>
+            <intent-filter android:priority="999">
                 <action android:name="android.nfc.action.TECH_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -75,7 +75,7 @@
                 android:resource="@xml/nfc_tech_filter" />
 
             <!-- 5. Fallback Tag Discovered for any unformatted / unknown tags -->
-            <intent-filter>
+            <intent-filter android:priority="999">
                 <action android:name="android.nfc.action.TAG_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
