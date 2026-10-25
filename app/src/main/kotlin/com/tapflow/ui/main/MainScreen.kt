@@ -95,6 +95,7 @@ fun MainScreen(
         onTestCurrentAutomation = { viewModel.testCurrentAutomation() },
         onSaveCurrentAutomation = { viewModel.saveCurrentAutomation(it) },
         onClearHistory = { viewModel.clearExecutionHistory() },
+        onToggleHapticFeedback = { viewModel.toggleHapticFeedback(it) },
         onRequestNotificationPermission = onRequestNotificationPermission,
         onClearMessages = { viewModel.clearMessages() },
         showSimulateDialog = showSimulateDialog
@@ -134,6 +135,7 @@ fun MainScreenContent(
     onTestCurrentAutomation: () -> Unit = {},
     onSaveCurrentAutomation: (String) -> Unit = {},
     onClearHistory: () -> Unit = {},
+    onToggleHapticFeedback: (Boolean) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onClearMessages: () -> Unit = {},
     showSimulateDialog: Boolean = false
@@ -182,12 +184,16 @@ fun MainScreenContent(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ) {
                 AppTab.values().forEach { tab ->
                     NavigationBarItem(
                         selected = state.currentTab == tab,
@@ -253,6 +259,9 @@ fun MainScreenContent(
                     SettingsScreenContent(
                         isNfcAvailable = state.isNfcAvailable,
                         isNfcEnabled = state.isNfcEnabled,
+                        isHapticFeedbackEnabled = state.isHapticFeedbackEnabled,
+                        onToggleHapticFeedback = onToggleHapticFeedback,
+                        onClearHistory = onClearHistory,
                         onRequestNotificationPermission = onRequestNotificationPermission
                     )
                 }

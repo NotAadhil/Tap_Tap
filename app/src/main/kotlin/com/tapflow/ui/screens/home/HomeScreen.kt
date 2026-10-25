@@ -1,5 +1,6 @@
 package com.tapflow.ui.screens.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -161,8 +162,10 @@ fun HomeScreenContent(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(
@@ -197,7 +200,8 @@ fun HomeScreenContent(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -245,8 +249,10 @@ private fun MetricCard(
     Card(
         modifier = modifier.clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -280,6 +286,8 @@ private fun NfcHardwareStatusCard(
         colors = CardDefaults.cardColors(
             containerColor = if (!isAvailable || !isEnabled) Color(0xFFFFF3E0) else Color(0xFFE8F5E9)
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -333,9 +341,11 @@ private fun HomeLiveScanCard(
                 is ScanEvent.Unregistered -> Color(0xFFE3F2FD)
                 is ScanEvent.Error -> Color(0xFFFFEBEE)
                 is ScanEvent.Debounced -> Color(0xFFFFF8E1)
-                null -> MaterialTheme.colorScheme.surfaceVariant
+                null -> MaterialTheme.colorScheme.surface
             }
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -388,7 +398,7 @@ private fun HomeLiveScanCard(
                         is ScanEvent.Matched -> "Automation sequence executed successfully"
                         is ScanEvent.Unregistered -> "UID: ${scanEvent.tagData.rawUidHex} • Tap to register"
                         is ScanEvent.Error -> scanEvent.message
-                        is ScanEvent.Debounced -> "Rapid double-tap ignored (< 500ms)"
+                        is ScanEvent.Debounced -> "Rapid double-tap ignored (< 2s)"
                         null -> "Hold any physical NFC card or tag against the phone"
                     },
                     fontSize = 12.sp,

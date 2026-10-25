@@ -1,9 +1,14 @@
 package com.tapflow.automation
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.hardware.camera2.CameraManager
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
@@ -17,12 +22,13 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 /**
- * Executes a sequence of automation actions with debouncing, error isolation,
- * and result reporting.
+ * Executes a sequence of [AutomationAction]s sequentially, recording results,
+ * isolating errors, respecting a 2-second debounce, and handling background activity launches.
  */
 class AutomationExecutor(
     private val context: Context,
-    private val channelId: String = "tapflow_automations"
+    private val channelId: String = "tapflow_automations",
+    private val isHapticEnabled: () -> Boolean = { false }
 ) {
 
     private val _messageEvents = MutableSharedFlow<String>(extraBufferCapacity = 10)
@@ -46,8 +52,10 @@ class AutomationExecutor(
         lastExecutedTagKey = tagKey
         lastExecutedAt = now
 
-        // Trigger brief haptic pulse on scan execution
-        vibrateBriefly()
+        // Trigger optional secondary haptic feedback only if user explicitly turned it on
+        if (isHapticEnabled()) {
+            vibrateBriefly()
+        }
 
         val results = mutableListOf<ActionResult>()
         val enabledActions = actions.filter { it.isEnabled }
@@ -79,6 +87,7 @@ class AutomationExecutor(
 
                 val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     android.app.ActivityOptions.makeBasic().apply {
+                        @Suppress("DEPRECATION")
                         setPendingIntentBackgroundActivityStartMode(
                             android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
                         )
@@ -94,6 +103,7 @@ class AutomationExecutor(
                 }
                 val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     android.app.ActivityOptions.makeBasic().apply {
+                        @Suppress("DEPRECATION")
                         setPendingIntentBackgroundActivityStartMode(
                             android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
                         )
@@ -128,7 +138,7 @@ class AutomationExecutor(
                     .build()
 
                 try {
-                    NotificationManagerCompat.from(context).notify(
+                    notificationManager.notify(
                         System.currentTimeMillis().toInt(),
                         notification
                     )
@@ -140,6 +150,38 @@ class AutomationExecutor(
             is AutomationAction.ShowMessage -> {
                 _messageEvents.tryEmit(action.message)
             }
+
+            is AutomationAction.ToggleFlashlight -> {
+                try {
+                    val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+                    val cameraId = cameraManager?.cameraIdList?.firstOrNull()
+                        ?: throw IllegalStateException("Torch hardware not available on this device.")
+                    cameraManager.setTorchMode(cameraId, action.enable)
+                    _messageEvents.tryEmit(if (action.enable) "Flashlight turned ON" else "Flashlight turned OFF")
+                } catch (e: Exception) {
+                    throw IllegalStateException("Failed to toggle flashlight: ${e.message}")
+                }
+            }
+
+            is AutomationAction.CopyToClipboard -> {
+                try {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    val clip = ClipData.newPlainText(action.label.ifBlank { "TapFlow" }, action.text)
+                    clipboard?.setPrimaryClip(clip)
+                    _messageEvents.tryEmit("Copied to clipboard: \"${action.text.take(20)}\"")
+                } catch (e: Exception) {
+                    throw IllegalStateException("Failed to copy to clipboard: ${e.message}")
+                }
+            }
+
+            is AutomationAction.PlaySound -> {
+                try {
+                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90)
+                    toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+                } catch (e: Exception) {
+                    // Audio fallback
+                }
+            }
         }
     }
 
@@ -148,16 +190,16 @@ class AutomationExecutor(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
                 vibratorManager?.defaultVibrator?.vibrate(
-                    VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)
+                    VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)
                 )
             } else {
                 @Suppress("DEPRECATION")
                 val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE))
+                    vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
                 } else {
                     @Suppress("DEPRECATION")
-                    vibrator?.vibrate(40)
+                    vibrator?.vibrate(30)
                 }
             }
         } catch (_: Exception) {

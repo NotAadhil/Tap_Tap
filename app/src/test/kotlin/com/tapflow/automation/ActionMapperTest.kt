@@ -101,6 +101,67 @@ class ActionMapperTest {
     }
 
     @Test
+    fun toggleFlashlightAction_roundTripSerialization_succeeds() {
+        val originalOn = AutomationAction.ToggleFlashlight(
+            id = 50,
+            automationId = 4,
+            sortOrder = 0,
+            isEnabled = true,
+            enable = true
+        )
+        val entityOn = ActionMapper.toEntity(originalOn)
+        assertEquals(ActionMapper.TYPE_TOGGLE_FLASHLIGHT, entityOn.type)
+        val restoredOn = ActionMapper.toDomain(entityOn) as AutomationAction.ToggleFlashlight
+        assertTrue(restoredOn.enable)
+        assertEquals("Turn Flashlight ON", restoredOn.describe())
+        assertNull(restoredOn.validate())
+
+        val originalOff = AutomationAction.ToggleFlashlight(enable = false)
+        val entityOff = ActionMapper.toEntity(originalOff)
+        val restoredOff = ActionMapper.toDomain(entityOff) as AutomationAction.ToggleFlashlight
+        assertEquals(false, restoredOff.enable)
+        assertEquals("Turn Flashlight OFF", restoredOff.describe())
+    }
+
+    @Test
+    fun copyToClipboardAction_roundTripSerialization_succeeds() {
+        val original = AutomationAction.CopyToClipboard(
+            id = 60,
+            automationId = 4,
+            sortOrder = 1,
+            isEnabled = true,
+            text = "GuestWiFiPassword123!",
+            label = "Wi-Fi Pass"
+        )
+        val entity = ActionMapper.toEntity(original)
+        assertEquals(ActionMapper.TYPE_COPY_TO_CLIPBOARD, entity.type)
+
+        val restored = ActionMapper.toDomain(entity) as AutomationAction.CopyToClipboard
+        assertEquals("GuestWiFiPassword123!", restored.text)
+        assertEquals("Wi-Fi Pass", restored.label)
+        assertEquals("Copy to Clipboard: \"GuestWiFiPassword123!\"", restored.describe())
+        assertNull(restored.validate())
+    }
+
+    @Test
+    fun playSoundAction_roundTripSerialization_succeeds() {
+        val original = AutomationAction.PlaySound(
+            id = 70,
+            automationId = 4,
+            sortOrder = 2,
+            isEnabled = true,
+            toneName = "Beep"
+        )
+        val entity = ActionMapper.toEntity(original)
+        assertEquals(ActionMapper.TYPE_PLAY_SOUND, entity.type)
+
+        val restored = ActionMapper.toDomain(entity) as AutomationAction.PlaySound
+        assertEquals("Beep", restored.toneName)
+        assertEquals("Play Sound (Beep)", restored.describe())
+        assertNull(restored.validate())
+    }
+
+    @Test
     fun actionValidation_detectsErrors() {
         val invalidUrl = AutomationAction.OpenUrl(url = "not-a-url")
         assertEquals("URL must begin with http:// or https://", invalidUrl.validate())
@@ -113,5 +174,11 @@ class ActionMapperTest {
 
         val emptyMsg = AutomationAction.ShowMessage(message = "")
         assertEquals("Enter a message", emptyMsg.validate())
+
+        val emptyClipboard = AutomationAction.CopyToClipboard(text = "")
+        assertEquals("Enter text to copy", emptyClipboard.validate())
+
+        val emptySound = AutomationAction.PlaySound(toneName = "")
+        assertEquals("Select a tone sound", emptySound.validate())
     }
 }

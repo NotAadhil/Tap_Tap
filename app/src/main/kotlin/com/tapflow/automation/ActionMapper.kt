@@ -12,11 +12,14 @@ object ActionMapper {
     const val TYPE_OPEN_URL = "OPEN_URL"
     const val TYPE_SHOW_NOTIFICATION = "SHOW_NOTIFICATION"
     const val TYPE_SHOW_MESSAGE = "SHOW_MESSAGE"
+    const val TYPE_TOGGLE_FLASHLIGHT = "TOGGLE_FLASHLIGHT"
+    const val TYPE_COPY_TO_CLIPBOARD = "COPY_TO_CLIPBOARD"
+    const val TYPE_PLAY_SOUND = "PLAY_SOUND"
 
     fun toDomain(entity: ActionEntity): AutomationAction {
         val json = try {
             JSONObject(entity.configJson)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             JSONObject()
         }
 
@@ -51,6 +54,28 @@ object ActionMapper {
                 isEnabled = entity.isEnabled,
                 message = json.optString("message", "")
             )
+            TYPE_TOGGLE_FLASHLIGHT -> AutomationAction.ToggleFlashlight(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                enable = json.optBoolean("enable", true)
+            )
+            TYPE_COPY_TO_CLIPBOARD -> AutomationAction.CopyToClipboard(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                text = json.optString("text", ""),
+                label = json.optString("label", "TapFlow")
+            )
+            TYPE_PLAY_SOUND -> AutomationAction.PlaySound(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                toneName = json.optString("toneName", "Confirmation Beep")
+            )
             else -> AutomationAction.ShowMessage(
                 id = entity.id,
                 automationId = entity.automationId,
@@ -81,6 +106,19 @@ object ActionMapper {
             is AutomationAction.ShowMessage -> {
                 json.put("message", domain.message)
                 TYPE_SHOW_MESSAGE
+            }
+            is AutomationAction.ToggleFlashlight -> {
+                json.put("enable", domain.enable)
+                TYPE_TOGGLE_FLASHLIGHT
+            }
+            is AutomationAction.CopyToClipboard -> {
+                json.put("text", domain.text)
+                json.put("label", domain.label)
+                TYPE_COPY_TO_CLIPBOARD
+            }
+            is AutomationAction.PlaySound -> {
+                json.put("toneName", domain.toneName)
+                TYPE_PLAY_SOUND
             }
         }
 

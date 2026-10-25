@@ -1,6 +1,7 @@
 package com.tapflow
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.tapflow.automation.AutomationExecutor
 import com.tapflow.automation.SafeActionExecutor
 import com.tapflow.data.db.AppDatabase
@@ -15,6 +16,10 @@ import com.tapflow.nfc.NfcManager
  * Clean, lightweight, and debuggable without complex annotation processors.
  */
 class AppContainer(val context: Context) {
+
+    val preferences: SharedPreferences by lazy {
+        context.getSharedPreferences("tapflow_prefs", Context.MODE_PRIVATE)
+    }
 
     val database: AppDatabase by lazy {
         AppDatabase.create(context)
@@ -37,7 +42,10 @@ class AppContainer(val context: Context) {
     }
 
     val automationExecutor: AutomationExecutor by lazy {
-        AutomationExecutor(context)
+        AutomationExecutor(
+            context = context,
+            isHapticEnabled = { preferences.getBoolean("haptic_feedback", false) }
+        )
     }
 
     val actionExecutor: SafeActionExecutor by lazy {

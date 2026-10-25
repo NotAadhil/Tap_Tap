@@ -250,10 +250,28 @@ fun ActionPickerDialog(
                     onClick = { onSelectType("OPEN_URL") }
                 )
                 ActionTypeOptionCard(
+                    icon = "🔦",
+                    title = "Toggle Flashlight",
+                    subtitle = "Turn camera torch light ON or OFF",
+                    onClick = { onSelectType("TOGGLE_FLASHLIGHT") }
+                )
+                ActionTypeOptionCard(
+                    icon = "📋",
+                    title = "Copy to Clipboard",
+                    subtitle = "Copy text or Wi-Fi password to clipboard",
+                    onClick = { onSelectType("COPY_TO_CLIPBOARD") }
+                )
+                ActionTypeOptionCard(
                     icon = "🔔",
                     title = "Show Notification",
                     subtitle = "Display a system notification in the tray",
                     onClick = { onSelectType("SHOW_NOTIFICATION") }
+                )
+                ActionTypeOptionCard(
+                    icon = "🔊",
+                    title = "Play Sound",
+                    subtitle = "Play a confirmation audio beep tone",
+                    onClick = { onSelectType("PLAY_SOUND") }
                 )
                 ActionTypeOptionCard(
                     icon = "💬",
@@ -357,6 +375,30 @@ fun ActionConfigDialog(
         )
     }
 
+    var flashlightEnable by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.ToggleFlashlight) existingAction.enable else true
+        )
+    }
+
+    var clipText by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.CopyToClipboard) existingAction.text else ""
+        )
+    }
+
+    var clipLabel by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.CopyToClipboard) existingAction.label else "TapFlow"
+        )
+    }
+
+    var soundTone by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.PlaySound) existingAction.toneName else "Confirmation Beep"
+        )
+    }
+
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
@@ -368,6 +410,9 @@ fun ActionConfigDialog(
                     "OPEN_URL" -> "Configure Open URL"
                     "SHOW_NOTIFICATION" -> "Configure Notification"
                     "SHOW_MESSAGE" -> "Configure Message"
+                    "TOGGLE_FLASHLIGHT" -> "Configure Flashlight"
+                    "COPY_TO_CLIPBOARD" -> "Configure Clipboard"
+                    "PLAY_SOUND" -> "Configure Audio Sound"
                     else -> "Configure Action"
                 },
                 fontWeight = FontWeight.Bold
@@ -481,6 +526,88 @@ fun ActionConfigDialog(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
+
+                    "TOGGLE_FLASHLIGHT" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Flashlight State on Tag Scan:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { flashlightEnable = true }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                androidx.compose.material3.RadioButton(
+                                    selected = flashlightEnable,
+                                    onClick = { flashlightEnable = true }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Turn Flashlight ON (Torch)")
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { flashlightEnable = false }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                androidx.compose.material3.RadioButton(
+                                    selected = !flashlightEnable,
+                                    onClick = { flashlightEnable = false }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Turn Flashlight OFF")
+                            }
+                        }
+                    }
+
+                    "COPY_TO_CLIPBOARD" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedTextField(
+                                value = clipText,
+                                onValueChange = {
+                                    clipText = it
+                                    errorMessage = null
+                                },
+                                label = { Text("Text to Copy") },
+                                placeholder = { Text("e.g. MyWiFiPassword123 or promo code") },
+                                isError = errorMessage != null,
+                                supportingText = errorMessage?.let { { Text(it) } },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = clipLabel,
+                                onValueChange = { clipLabel = it },
+                                label = { Text("Label (Optional)") },
+                                placeholder = { Text("e.g. Home Wi-Fi") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    "PLAY_SOUND" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Select Sound Tone:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                            val tones = listOf("Confirmation Beep", "High Chime", "Alert Tone")
+                            tones.forEach { tone ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { soundTone = tone }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    androidx.compose.material3.RadioButton(
+                                        selected = soundTone == tone,
+                                        onClick = { soundTone = tone }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(tone)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -549,6 +676,44 @@ fun ActionConfigDialog(
                                     sortOrder = existingAction?.sortOrder ?: 0,
                                     isEnabled = existingAction?.isEnabled ?: true,
                                     message = messageText.trim()
+                                )
+                            )
+                        }
+                        "TOGGLE_FLASHLIGHT" -> {
+                            onSave(
+                                AutomationAction.ToggleFlashlight(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    enable = flashlightEnable
+                                )
+                            )
+                        }
+                        "COPY_TO_CLIPBOARD" -> {
+                            if (clipText.isBlank()) {
+                                errorMessage = "Enter text to copy"
+                                return@Button
+                            }
+                            onSave(
+                                AutomationAction.CopyToClipboard(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    text = clipText.trim(),
+                                    label = clipLabel.trim()
+                                )
+                            )
+                        }
+                        "PLAY_SOUND" -> {
+                            onSave(
+                                AutomationAction.PlaySound(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    toneName = soundTone
                                 )
                             )
                         }

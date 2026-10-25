@@ -1,5 +1,6 @@
 package com.tapflow.ui.screens.automations
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -127,7 +128,8 @@ fun AutomationScreenContent(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
@@ -275,6 +277,7 @@ fun AutomationBuilderDialog(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -286,7 +289,7 @@ fun AutomationBuilderDialog(
                         ) {
                             Text("No actions in sequence", fontWeight = FontWeight.Medium, fontSize = 13.sp)
                             Text(
-                                "Tap '+ Add Step' to choose an app, URL, notification, or message.",
+                                "Tap '+ Add Step' to choose an app, URL, flashlight, clipboard, notification, sound, or message.",
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -303,9 +306,10 @@ fun AutomationBuilderDialog(
                         itemsIndexed(actions) { index, action ->
                             Card(
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (action.isEnabled) MaterialTheme.colorScheme.surfaceVariant
-                                    else Color(0xFFF0F0F0)
+                                    containerColor = if (action.isEnabled) MaterialTheme.colorScheme.surface
+                                    else MaterialTheme.colorScheme.surfaceVariant
                                 ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -323,7 +327,10 @@ fun AutomationBuilderDialog(
                                     val icon = when (action) {
                                         is AutomationAction.OpenApp -> "📱"
                                         is AutomationAction.OpenUrl -> "🌐"
+                                        is AutomationAction.ToggleFlashlight -> "🔦"
+                                        is AutomationAction.CopyToClipboard -> "📋"
                                         is AutomationAction.ShowNotification -> "🔔"
+                                        is AutomationAction.PlaySound -> "🔊"
                                         is AutomationAction.ShowMessage -> "💬"
                                     }
 

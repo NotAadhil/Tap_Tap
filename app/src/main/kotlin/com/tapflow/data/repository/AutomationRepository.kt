@@ -51,14 +51,7 @@ class AutomationRepository(
         // Clear existing actions for this automation and replace with ordered list
         actionDao.deleteAllForAutomation(targetId)
         val entities = actions.mapIndexed { index, action ->
-            val domainWithUpdatedOrder = action.withSortOrder(index).let {
-                when (it) {
-                    is AutomationAction.OpenApp -> it.copy(automationId = targetId)
-                    is AutomationAction.OpenUrl -> it.copy(automationId = targetId)
-                    is AutomationAction.ShowNotification -> it.copy(automationId = targetId)
-                    is AutomationAction.ShowMessage -> it.copy(automationId = targetId)
-                }
-            }
+            val domainWithUpdatedOrder = action.withSortOrder(index).withAutomationId(targetId)
             ActionMapper.toEntity(domainWithUpdatedOrder)
         }
         actionDao.insertAll(entities)

@@ -2,8 +2,10 @@ package com.tapflow.ui.screens.settings
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +29,8 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,12 +44,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tapflow.ui.theme.ResearchTeal
 
 @Composable
 fun SettingsScreenContent(
     isNfcAvailable: Boolean,
     isNfcEnabled: Boolean,
-    onRequestNotificationPermission: () -> Unit
+    isHapticFeedbackEnabled: Boolean = false,
+    onToggleHapticFeedback: (Boolean) -> Unit = {},
+    onClearHistory: () -> Unit = {},
+    onRequestNotificationPermission: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -53,15 +61,72 @@ fun SettingsScreenContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Text(
-                text = "Settings & Device Status",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Column {
+                Text(
+                    text = "Preferences & System Status",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Configure haptics, permissions, and view Android NFC hardware status.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Haptic Feedback Switch Card (Fixes the double vibration issue!)
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("📳", fontSize = 18.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Secondary Tap Vibration", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text(
+                                text = if (isHapticFeedbackEnabled) "TapFlow vibration ON (2 buzzes)" else "TapFlow vibration OFF (Clean single vibration)",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = isHapticFeedbackEnabled,
+                        onCheckedChange = onToggleHapticFeedback,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                }
+            }
         }
 
         // NFC Status Card
@@ -71,31 +136,40 @@ fun SettingsScreenContent(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(12.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (isNfcAvailable && isNfcEnabled) "🟢" else "⚠️", fontSize = 20.sp)
-                            Spacer(modifier = Modifier.width(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (isNfcAvailable && isNfcEnabled) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(if (isNfcAvailable && isNfcEnabled) "🟢" else "⚠️", fontSize = 18.sp)
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("NFC Hardware", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                Text("NFC Hardware Radio", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                                 Text(
-                                    text = if (!isNfcAvailable) "Hardware not detected on device"
-                                           else if (!isNfcEnabled) "Disabled in Android Settings"
-                                           else "Active and listening",
+                                    text = if (!isNfcAvailable) "Hardware absent"
+                                           else if (!isNfcEnabled) "Turned OFF in Android Settings"
+                                           else "Active, listening (2s cooldown enabled)",
                                     fontSize = 12.sp,
                                     color = if (isNfcAvailable && isNfcEnabled) Color(0xFF2E7D32) else Color(0xFFC62828)
                                 )
                             }
                         }
 
-                        FilledTonalButton(
+                        OutlinedButton(
                             onClick = {
                                 try {
                                     context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
@@ -103,7 +177,8 @@ fun SettingsScreenContent(
                                     context.startActivity(Intent(Settings.ACTION_SETTINGS))
                                 }
                             },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Text("Configure", fontSize = 12.sp)
                         }
@@ -119,58 +194,158 @@ fun SettingsScreenContent(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(12.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(14.dp),
+                    modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Text("🔔", fontSize = 20.sp)
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("🔔", fontSize = 18.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text("Notifications", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                             Text(
-                                "Required for ShowNotification actions",
+                                "Required for ShowNotification actions & alerts",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    FilledTonalButton(
+                    OutlinedButton(
                         onClick = onRequestNotificationPermission,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
-                        Text("Permission", fontSize = 12.sp)
+                        Text("Grant", fontSize = 12.sp)
                     }
                 }
             }
         }
 
-        // Troubleshooting & Education Header
+        // Default NFC Handler Resolver Card
         item {
-            Spacer(modifier = Modifier.height(4.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("🎯", fontSize = 18.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Default NFC App Setup", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text(
+                                "If Google Tags or MacroDroid intercepts your tag on the home screen, clear defaults.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                context.startActivity(Intent(Settings.ACTION_SETTINGS))
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    ) {
+                        Text("Open App Details / Clear Defaults", fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+
+        // Clear History Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Clear Execution History", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Text(
+                            "Wipes local scan history logs permanently",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = onClearHistory,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                        border = BorderStroke(1.dp, Color(0xFFBA1A1A))
+                    ) {
+                        Text("Clear Logs", fontSize = 12.sp, color = Color(0xFFBA1A1A))
+                    }
+                }
+            }
+        }
+
+        // Troubleshooting Section Header
+        item {
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Troubleshooting & Android Realities",
+                text = "Android NFC Architecture & FAQ",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
 
         item {
             ExpandableFaqCard(
-                question = "Why doesn't it trigger when the phone is locked or screen off?",
-                answer = "In Android, the physical NFC controller chip is powered down at the hardware level whenever the screen is turned off to prevent severe battery drain and unauthorized scans in pockets. This is an intentional Android hardware limit that cannot be bypassed by any third-party application."
+                question = "Why doesn't Android scan tags with the screen completely off?",
+                answer = "In Android's core architecture, the hardware NFC antenna shuts down completely when the screen is dark/off. This is hardcoded into the Linux kernel and Android's NfcService to prevent battery drain and prevent people with rogue NFC antennas from touching your phone in public. The phone simply needs to be awake (lock screen lit up or unlocked)."
             )
         }
 
         item {
             ExpandableFaqCard(
-                question = "Why doesn't it trigger after Force Stopping the app?",
-                answer = "When a user explicitly Force Stops an application from Android Settings, Android OS puts the application into a 'Stopped State'. In this state, Android refuses to deliver any broadcast or intent (including NFC scans) until the user opens the application icon again."
+                question = "Why did I feel 2 vibrations before?",
+                answer = "Android's operating system has its own native vibration whenever any NFC antenna detects a tag. Previously, TapFlow also fired a secondary vibration. You can now toggle 'Secondary Tap Vibration' above so you only get the clean single native vibration!"
             )
         }
 
@@ -181,41 +356,52 @@ fun SettingsScreenContent(
             )
         }
 
-        item {
-            ExpandableFaqCard(
-                question = "Can an NFC tag run arbitrary code or harm my phone?",
-                answer = "No. TapFlow uses strict typed validation. NFC tags only provide a hardware identifier that is matched against your local database. No raw shell commands, script execution, or unvalidated payloads are ever executed."
-            )
-        }
-
-        // Privacy Guarantee Card
+        // Stack & Architecture Info Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
-                shape = RoundedCornerShape(12.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🛡️", fontSize = 20.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "100% Local & Private",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Tech Stack & Local Architecture", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        TechPill("Kotlin 2.0")
+                        TechPill("Compose M3")
+                        TechPill("Room 2.8")
+                        TechPill("Coroutines")
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "All your registered tags, automations, and execution histories are stored purely on your device in a local Room database. No analytics, tracking, or network requests are ever made.",
+                        text = "100% Offline & Local. Zero trackers, zero analytics, zero external network calls.",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TechPill(name: String) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier.padding(vertical = 2.dp)
+    ) {
+        Text(
+            text = name,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }
 
@@ -231,11 +417,13 @@ private fun ExpandableFaqCard(
             .fillMaxWidth()
             .clickable { expanded = !expanded },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(10.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -243,8 +431,9 @@ private fun ExpandableFaqCard(
             ) {
                 Text(
                     text = question,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
@@ -258,9 +447,9 @@ private fun ExpandableFaqCard(
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     Text(
                         text = answer,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 16.sp
+                        lineHeight = 18.sp
                     )
                 }
             }

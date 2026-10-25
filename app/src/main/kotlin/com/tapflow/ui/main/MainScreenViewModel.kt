@@ -1,6 +1,7 @@
 package com.tapflow.ui.main
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -46,7 +47,8 @@ data class MainUiState(
     val actionToEdit: AutomationAction? = null,
     val installedApps: List<InstalledAppInfo> = emptyList(),
     val userMessage: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isHapticFeedbackEnabled: Boolean = false
 )
 
 class MainScreenViewModel(
@@ -56,7 +58,8 @@ class MainScreenViewModel(
     private val automationExecutor: AutomationExecutor,
     private val nfcManager: NfcManager,
     private val coordinator: NfcDispatchCoordinator,
-    private val context: Context
+    private val context: Context,
+    private val preferences: SharedPreferences
 ) : ViewModel() {
 
     private val _currentTab = MutableStateFlow(AppTab.HOME)
@@ -76,6 +79,9 @@ class MainScreenViewModel(
     private val _installedApps = MutableStateFlow<List<InstalledAppInfo>>(emptyList())
     private val _userMessage = MutableStateFlow<String?>(null)
     private val _errorMessage = MutableStateFlow<String?>(null)
+    private val _isHapticFeedbackEnabled = MutableStateFlow(
+        preferences.getBoolean("haptic_feedback_enabled", false)
+    )
 
     val uiState: StateFlow<MainUiState> = combine(
         combine(
@@ -107,11 +113,12 @@ class MainScreenViewModel(
         combine(
             _installedApps,
             _userMessage,
-            _errorMessage
-        ) { apps, msg, err ->
-            Triple(apps, msg, err)
+            _errorMessage,
+            _isHapticFeedbackEnabled
+        ) { apps, msg, err, haptic ->
+            Tuple4(apps, msg, err, haptic)
         }
-    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err) ->
+    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err, haptic) ->
         MainUiState(
             currentTab = tab,
             isNfcAvailable = nfcManager.isNfcAvailable,
@@ -131,14 +138,16 @@ class MainScreenViewModel(
             actionToEdit = actionEdit,
             installedApps = apps,
             userMessage = msg,
-            errorMessage = err
+            errorMessage = err,
+            isHapticFeedbackEnabled = haptic
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         MainUiState(
             isNfcAvailable = nfcManager.isNfcAvailable,
-            isNfcEnabled = nfcManager.isNfcEnabled
+            isNfcEnabled = nfcManager.isNfcEnabled,
+            isHapticFeedbackEnabled = preferences.getBoolean("haptic_feedback_enabled", false)
         )
     )
 
@@ -323,7 +332,10 @@ class MainScreenViewModel(
         _actionTypeToConfigure.value = when (action) {
             is AutomationAction.OpenApp -> "OPEN_APP"
             is AutomationAction.OpenUrl -> "OPEN_URL"
+            is AutomationAction.ToggleFlashlight -> "TOGGLE_FLASHLIGHT"
+            is AutomationAction.CopyToClipboard -> "COPY_TO_CLIPBOARD"
             is AutomationAction.ShowNotification -> "SHOW_NOTIFICATION"
+            is AutomationAction.PlaySound -> "PLAY_SOUND"
             is AutomationAction.ShowMessage -> "SHOW_MESSAGE"
         }
         _showActionConfig.value = true
@@ -429,6 +441,13 @@ class MainScreenViewModel(
         }
     }
 
+    // --- Settings Operations ---
+
+    fun toggleHapticFeedback(enabled: Boolean) {
+        preferences.edit().putBoolean("haptic_feedback_enabled", enabled).apply()
+        _isHapticFeedbackEnabled.value = enabled
+    }
+
     // --- Simulator & Testing ---
 
     fun simulateTag(tagData: TagData) {
@@ -450,7 +469,8 @@ class MainScreenViewModel(
                 automationExecutor = container.automationExecutor,
                 nfcManager = container.nfcManager,
                 coordinator = container.coordinator,
-                context = container.context
+                context = container.context,
+                preferences = container.preferences
             ) as T
         }
     }
