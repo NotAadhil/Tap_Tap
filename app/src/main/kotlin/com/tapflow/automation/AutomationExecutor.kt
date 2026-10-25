@@ -78,7 +78,7 @@ class AutomationExecutor(
         return results
     }
 
-    private fun runAction(action: AutomationAction) {
+    private suspend fun runAction(action: AutomationAction) {
         when (action) {
             is AutomationAction.OpenApp -> {
                 val pm = context.packageManager
@@ -203,6 +203,48 @@ class AutomationExecutor(
                 } catch (e: Exception) {
                     // Audio fallback
                 }
+            }
+
+            is AutomationAction.OpenSettings -> {
+                val actionIntent = when (action.settingType) {
+                    "WIFI" -> Intent(android.provider.Settings.ACTION_WIFI_SETTINGS)
+                    "BLUETOOTH" -> Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                    "NFC" -> Intent(android.provider.Settings.ACTION_NFC_SETTINGS)
+                    "SOUND" -> Intent(android.provider.Settings.ACTION_SOUND_SETTINGS)
+                    "DISPLAY" -> Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)
+                    "BATTERY" -> Intent(android.provider.Settings.ACTION_BATTERY_SAVER_SETTINGS)
+                    else -> Intent(android.provider.Settings.ACTION_SETTINGS)
+                }.apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(actionIntent)
+                _messageEvents.tryEmit(action.describe())
+            }
+
+            is AutomationAction.SetRingerMode -> {
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                    ?: throw IllegalStateException("Audio system not accessible")
+                when (action.ringerMode) {
+                    "SILENT" -> audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+                    "VIBRATE" -> audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+                    "NORMAL" -> audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                }
+                _messageEvents.tryEmit(action.describe())
+            }
+
+            is AutomationAction.ComposeSms -> {
+                val uri = Uri.parse("smsto:${action.phoneNumber}")
+                val smsIntent = Intent(Intent.ACTION_SENDTO, uri).apply {
+                    if (action.message.isNotBlank()) {
+                        putExtra("sms_body", action.message)
+                    }
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(smsIntent)
+            }
+
+            is AutomationAction.DelayAction -> {
+                kotlinx.coroutines.delay(action.durationMs)
             }
         }
     }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,6 +43,9 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -68,9 +72,13 @@ fun SettingsScreenContent(
     onToggleHapticFeedback: (Boolean) -> Unit = {},
     onSetCooldownSeconds: (Long) -> Unit = {},
     onClearHistory: () -> Unit = {},
-    onRequestNotificationPermission: () -> Unit = {}
+    onRequestNotificationPermission: () -> Unit = {},
+    onExportBackup: () -> String = { "" },
+    onImportBackup: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
+    var showImportDialog by remember { mutableStateOf(false) }
+    var importJsonText by remember { mutableStateOf("") }
 
     LazyColumn(
         modifier = Modifier
@@ -267,6 +275,113 @@ fun SettingsScreenContent(
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Text("Configure", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // System NFC Vibration Tip & Quick Settings Shortcut
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Vibration,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("System Tag Haptics", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text(
+                                "Android OS plays hardware vibrations when tags are near the antenna. Turn off in Android Vibration Settings for 100% silent scanning.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                context.startActivity(Intent("android.settings.VIBRATION_SETTINGS"))
+                            } catch (_: Exception) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_SOUND_SETTINGS))
+                                } catch (_: Exception) {
+                                    context.startActivity(Intent(Settings.ACTION_SETTINGS))
+                                }
+                            }
+                        },
+                        shape = CircleShape,
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Open Android Vibration Settings", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        // Backup & Restore (JSON Export & Import)
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Backup & Portable Restore", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text(
+                        "Export your registered tags and automations to JSON or restore them onto another device.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilledTonalButton(
+                            onClick = {
+                                val json = onExportBackup()
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("TapFlow Backup", json))
+                            },
+                            shape = CircleShape,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Copy Backup JSON", fontSize = 12.sp)
+                        }
+                        OutlinedButton(
+                            onClick = { showImportDialog = true },
+                            shape = CircleShape,
+                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Restore JSON", fontSize = 12.sp)
                         }
                     }
                 }
@@ -488,6 +603,42 @@ fun SettingsScreenContent(
                 }
             }
         }
+    }
+
+    if (showImportDialog) {
+        AlertDialog(
+            onDismissRequest = { showImportDialog = false },
+            title = { Text("Restore Backup from JSON", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Paste your exported TapFlow JSON backup below:", fontSize = 12.sp)
+                    OutlinedTextField(
+                        value = importJsonText,
+                        onValueChange = { importJsonText = it },
+                        placeholder = { Text("Paste JSON here...") },
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (importJsonText.isNotBlank()) {
+                            onImportBackup(importJsonText)
+                            showImportDialog = false
+                            importJsonText = ""
+                        }
+                    }
+                ) {
+                    Text("Restore")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

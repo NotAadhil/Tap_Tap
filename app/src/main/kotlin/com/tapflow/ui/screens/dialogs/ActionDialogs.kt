@@ -24,9 +24,12 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.FlashlightOn
+import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -297,6 +300,30 @@ fun ActionPickerDialog(
                     subtitle = "Display a brief in-app confirmation message",
                     onClick = { onSelectType("SHOW_MESSAGE") }
                 )
+                ActionTypeOptionCard(
+                    icon = Icons.Outlined.Settings,
+                    title = "Device Settings",
+                    subtitle = "Open Wi-Fi, Bluetooth, NFC, Sound or Battery settings",
+                    onClick = { onSelectType("OPEN_SETTINGS") }
+                )
+                ActionTypeOptionCard(
+                    icon = Icons.Outlined.NotificationsActive,
+                    title = "Set Ringer Mode",
+                    subtitle = "Switch audio to Silent, Vibrate, or Normal",
+                    onClick = { onSelectType("SET_RINGER") }
+                )
+                ActionTypeOptionCard(
+                    icon = Icons.Outlined.ChatBubbleOutline,
+                    title = "Compose SMS",
+                    subtitle = "Pre-fill text message to a contact",
+                    onClick = { onSelectType("COMPOSE_SMS") }
+                )
+                ActionTypeOptionCard(
+                    icon = Icons.Outlined.HourglassEmpty,
+                    title = "Wait / Delay",
+                    subtitle = "Pause execution for a few seconds between actions",
+                    onClick = { onSelectType("DELAY") }
+                )
             }
         },
         confirmButton = {},
@@ -424,6 +451,36 @@ fun ActionConfigDialog(
         )
     }
 
+    var selectedSetting by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.OpenSettings) existingAction.settingType else "WIFI"
+        )
+    }
+
+    var selectedRinger by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.SetRingerMode) existingAction.ringerMode else "VIBRATE"
+        )
+    }
+
+    var smsPhone by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.ComposeSms) existingAction.phoneNumber else ""
+        )
+    }
+
+    var smsBody by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.ComposeSms) existingAction.message else ""
+        )
+    }
+
+    var delaySeconds by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.DelayAction) (existingAction.durationMs / 1000L).coerceAtLeast(1L).toString() else "1"
+        )
+    }
+
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
@@ -438,6 +495,10 @@ fun ActionConfigDialog(
                     "TOGGLE_FLASHLIGHT" -> "Configure Flashlight"
                     "COPY_TO_CLIPBOARD" -> "Configure Clipboard"
                     "PLAY_SOUND" -> "Configure Audio Sound"
+                    "OPEN_SETTINGS" -> "Configure Device Settings"
+                    "SET_RINGER" -> "Configure Ringer Mode"
+                    "COMPOSE_SMS" -> "Configure SMS"
+                    "DELAY" -> "Configure Pause Delay"
                     else -> "Configure Action"
                 },
                 fontWeight = FontWeight.Bold
@@ -639,6 +700,97 @@ fun ActionConfigDialog(
                             }
                         }
                     }
+
+                    "OPEN_SETTINGS" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Select Settings Screen:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                            val settings = listOf(
+                                "WIFI" to "Wi-Fi Settings",
+                                "BLUETOOTH" to "Bluetooth Settings",
+                                "NFC" to "NFC Settings",
+                                "SOUND" to "Sound & Volume Settings",
+                                "DISPLAY" to "Display & Brightness Settings",
+                                "BATTERY" to "Battery & Power Settings"
+                            )
+                            settings.forEach { (type, label) ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { selectedSetting = type }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    androidx.compose.material3.RadioButton(
+                                        selected = selectedSetting == type,
+                                        onClick = { selectedSetting = type }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(label, fontSize = 13.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    "SET_RINGER" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Set Ringer Mode:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                            val modes = listOf(
+                                "SILENT" to "Silent Mode",
+                                "VIBRATE" to "Vibrate Only",
+                                "NORMAL" to "Normal (Sound ON)"
+                            )
+                            modes.forEach { (mode, label) ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { selectedRinger = mode }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    androidx.compose.material3.RadioButton(
+                                        selected = selectedRinger == mode,
+                                        onClick = { selectedRinger = mode }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(label)
+                                }
+                            }
+                        }
+                    }
+
+                    "COMPOSE_SMS" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedTextField(
+                                value = smsPhone,
+                                onValueChange = { smsPhone = it },
+                                label = { Text("Recipient Phone Number") },
+                                placeholder = { Text("+1234567890") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = smsBody,
+                                onValueChange = { smsBody = it },
+                                label = { Text("Message Body (Optional)") },
+                                placeholder = { Text("e.g. Arrived home safely!") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    "DELAY" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Pause execution for a few seconds:", fontSize = 13.sp)
+                            OutlinedTextField(
+                                value = delaySeconds,
+                                onValueChange = { delaySeconds = it.filter { ch -> ch.isDigit() } },
+                                label = { Text("Delay (Seconds)") },
+                                placeholder = { Text("1") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
             }
         },
@@ -749,6 +901,56 @@ fun ActionConfigDialog(
                                     sortOrder = existingAction?.sortOrder ?: 0,
                                     isEnabled = existingAction?.isEnabled ?: true,
                                     toneName = soundTone
+                                )
+                            )
+                        }
+                        "OPEN_SETTINGS" -> {
+                            onSave(
+                                AutomationAction.OpenSettings(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    settingType = selectedSetting
+                                )
+                            )
+                        }
+                        "SET_RINGER" -> {
+                            onSave(
+                                AutomationAction.SetRingerMode(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    ringerMode = selectedRinger
+                                )
+                            )
+                        }
+                        "COMPOSE_SMS" -> {
+                            if (smsPhone.isBlank() && smsBody.isBlank()) {
+                                errorMessage = "Enter a phone number or message"
+                                return@Button
+                            }
+                            onSave(
+                                AutomationAction.ComposeSms(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    phoneNumber = smsPhone.trim(),
+                                    message = smsBody.trim()
+                                )
+                            )
+                        }
+                        "DELAY" -> {
+                            val secs = delaySeconds.toLongOrNull() ?: 1L
+                            onSave(
+                                AutomationAction.DelayAction(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    durationMs = secs * 1000L
                                 )
                             )
                         }

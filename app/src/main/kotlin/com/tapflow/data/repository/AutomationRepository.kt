@@ -6,6 +6,8 @@ import com.tapflow.data.db.dao.ActionDao
 import com.tapflow.data.db.dao.AutomationDao
 import com.tapflow.data.db.dao.RegisteredTagDao
 import com.tapflow.data.db.entity.AutomationEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -61,6 +63,16 @@ class AutomationRepository(
     suspend fun updateAutomationEnabled(id: Long, isEnabled: Boolean) {
         val automation = automationDao.findById(id) ?: return
         automationDao.update(automation.copy(isEnabled = isEnabled, updatedAt = System.currentTimeMillis()))
+    }
+
+    suspend fun duplicateAutomation(automationId: Long): Long = withContext(Dispatchers.IO) {
+        val original = getAutomationById(automationId) ?: return@withContext 0L
+        val actions = getActions(automationId)
+        val copy = original.copy(id = 0, name = "${original.name} (Copy)", updatedAt = System.currentTimeMillis())
+        val newId = automationDao.insert(copy)
+        val clonedActions = actions.map { it.withAutomationId(newId) }
+        saveAutomation(copy.copy(id = newId), clonedActions)
+        newId
     }
 
     suspend fun deleteAutomation(id: Long) {

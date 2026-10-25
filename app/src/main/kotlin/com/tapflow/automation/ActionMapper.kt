@@ -15,6 +15,10 @@ object ActionMapper {
     const val TYPE_TOGGLE_FLASHLIGHT = "TOGGLE_FLASHLIGHT"
     const val TYPE_COPY_TO_CLIPBOARD = "COPY_TO_CLIPBOARD"
     const val TYPE_PLAY_SOUND = "PLAY_SOUND"
+    const val TYPE_OPEN_SETTINGS = "OPEN_SETTINGS"
+    const val TYPE_SET_RINGER = "SET_RINGER"
+    const val TYPE_COMPOSE_SMS = "COMPOSE_SMS"
+    const val TYPE_DELAY = "DELAY"
 
     fun toDomain(entity: ActionEntity): AutomationAction {
         val json = try {
@@ -76,6 +80,35 @@ object ActionMapper {
                 isEnabled = entity.isEnabled,
                 toneName = json.optString("toneName", "Confirmation Beep")
             )
+            TYPE_OPEN_SETTINGS -> AutomationAction.OpenSettings(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                settingType = json.optString("settingType", "WIFI")
+            )
+            TYPE_SET_RINGER -> AutomationAction.SetRingerMode(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                ringerMode = json.optString("ringerMode", "VIBRATE")
+            )
+            TYPE_COMPOSE_SMS -> AutomationAction.ComposeSms(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                phoneNumber = json.optString("phoneNumber", ""),
+                message = json.optString("message", "")
+            )
+            TYPE_DELAY -> AutomationAction.DelayAction(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                durationMs = json.optLong("durationMs", 1000L)
+            )
             else -> AutomationAction.ShowMessage(
                 id = entity.id,
                 automationId = entity.automationId,
@@ -119,6 +152,23 @@ object ActionMapper {
             is AutomationAction.PlaySound -> {
                 json.put("toneName", domain.toneName)
                 TYPE_PLAY_SOUND
+            }
+            is AutomationAction.OpenSettings -> {
+                json.put("settingType", domain.settingType)
+                TYPE_OPEN_SETTINGS
+            }
+            is AutomationAction.SetRingerMode -> {
+                json.put("ringerMode", domain.ringerMode)
+                TYPE_SET_RINGER
+            }
+            is AutomationAction.ComposeSms -> {
+                json.put("phoneNumber", domain.phoneNumber)
+                json.put("message", domain.message)
+                TYPE_COMPOSE_SMS
+            }
+            is AutomationAction.DelayAction -> {
+                json.put("durationMs", domain.durationMs)
+                TYPE_DELAY
             }
         }
 

@@ -20,6 +20,10 @@ sealed interface AutomationAction {
         is ToggleFlashlight -> copy(sortOrder = newOrder)
         is CopyToClipboard -> copy(sortOrder = newOrder)
         is PlaySound -> copy(sortOrder = newOrder)
+        is OpenSettings -> copy(sortOrder = newOrder)
+        is SetRingerMode -> copy(sortOrder = newOrder)
+        is ComposeSms -> copy(sortOrder = newOrder)
+        is DelayAction -> copy(sortOrder = newOrder)
     }
 
     fun withEnabled(enabled: Boolean): AutomationAction = when (this) {
@@ -30,6 +34,10 @@ sealed interface AutomationAction {
         is ToggleFlashlight -> copy(isEnabled = enabled)
         is CopyToClipboard -> copy(isEnabled = enabled)
         is PlaySound -> copy(isEnabled = enabled)
+        is OpenSettings -> copy(isEnabled = enabled)
+        is SetRingerMode -> copy(isEnabled = enabled)
+        is ComposeSms -> copy(isEnabled = enabled)
+        is DelayAction -> copy(isEnabled = enabled)
     }
 
     fun withAutomationId(newAutomationId: Long): AutomationAction = when (this) {
@@ -40,6 +48,10 @@ sealed interface AutomationAction {
         is ToggleFlashlight -> copy(automationId = newAutomationId)
         is CopyToClipboard -> copy(automationId = newAutomationId)
         is PlaySound -> copy(automationId = newAutomationId)
+        is OpenSettings -> copy(automationId = newAutomationId)
+        is SetRingerMode -> copy(automationId = newAutomationId)
+        is ComposeSms -> copy(automationId = newAutomationId)
+        is DelayAction -> copy(automationId = newAutomationId)
     }
 
     data class OpenApp(
@@ -136,5 +148,65 @@ sealed interface AutomationAction {
         override fun validate(): String? {
             return if (toneName.isBlank()) "Select a tone sound" else null
         }
+    }
+
+    data class OpenSettings(
+        override val id: Long = 0,
+        override val automationId: Long = 0,
+        override val sortOrder: Int = 0,
+        override val isEnabled: Boolean = true,
+        val settingType: String = "WIFI"
+    ) : AutomationAction {
+        override fun describe() = when (settingType) {
+            "WIFI" -> "Open Wi-Fi Settings"
+            "BLUETOOTH" -> "Open Bluetooth Settings"
+            "NFC" -> "Open NFC Settings"
+            "SOUND" -> "Open Sound Settings"
+            "DISPLAY" -> "Open Display Settings"
+            "BATTERY" -> "Open Battery Settings"
+            else -> "Open System Settings"
+        }
+        override fun validate(): String? = null
+    }
+
+    data class SetRingerMode(
+        override val id: Long = 0,
+        override val automationId: Long = 0,
+        override val sortOrder: Int = 0,
+        override val isEnabled: Boolean = true,
+        val ringerMode: String = "VIBRATE" // SILENT, VIBRATE, NORMAL
+    ) : AutomationAction {
+        override fun describe() = when (ringerMode) {
+            "SILENT" -> "Set Ringer: Silent"
+            "VIBRATE" -> "Set Ringer: Vibrate"
+            "NORMAL" -> "Set Ringer: Normal (Loud)"
+            else -> "Set Ringer Mode"
+        }
+        override fun validate(): String? = null
+    }
+
+    data class ComposeSms(
+        override val id: Long = 0,
+        override val automationId: Long = 0,
+        override val sortOrder: Int = 0,
+        override val isEnabled: Boolean = true,
+        val phoneNumber: String = "",
+        val message: String = ""
+    ) : AutomationAction {
+        override fun describe() = "Compose SMS to ${phoneNumber.ifBlank { "Contact" }}"
+        override fun validate(): String? {
+            return if (phoneNumber.isBlank() && message.isBlank()) "Enter a phone number or message" else null
+        }
+    }
+
+    data class DelayAction(
+        override val id: Long = 0,
+        override val automationId: Long = 0,
+        override val sortOrder: Int = 0,
+        override val isEnabled: Boolean = true,
+        val durationMs: Long = 1000L
+    ) : AutomationAction {
+        override fun describe() = "Wait ${(durationMs / 1000.0).toString().trimEnd('0').trimEnd('.')}s"
+        override fun validate(): String? = if (durationMs < 100L) "Minimum delay is 100ms" else null
     }
 }

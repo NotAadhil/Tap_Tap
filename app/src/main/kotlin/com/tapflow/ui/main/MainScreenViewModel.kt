@@ -344,6 +344,10 @@ class MainScreenViewModel(
             is AutomationAction.ShowNotification -> "SHOW_NOTIFICATION"
             is AutomationAction.PlaySound -> "PLAY_SOUND"
             is AutomationAction.ShowMessage -> "SHOW_MESSAGE"
+            is AutomationAction.OpenSettings -> "OPEN_SETTINGS"
+            is AutomationAction.SetRingerMode -> "SET_RINGER"
+            is AutomationAction.ComposeSms -> "COMPOSE_SMS"
+            is AutomationAction.DelayAction -> "DELAY"
         }
         _showActionConfig.value = true
     }
@@ -463,6 +467,68 @@ class MainScreenViewModel(
         viewModelScope.launch {
             automationRepository.deleteAutomation(automation.id)
             _userMessage.value = "Deleted automation \"${automation.name}\""
+        }
+    }
+
+    fun duplicateAutomation(automation: AutomationEntity) {
+        viewModelScope.launch {
+            automationRepository.duplicateAutomation(automation.id)
+            _userMessage.value = "Duplicated \"${automation.name}\""
+        }
+    }
+
+    fun exportBackupToJson(): String {
+        val json = org.json.JSONObject()
+        val tagsArray = org.json.JSONArray()
+        for (tag in uiState.value.registeredTags) {
+            val tagJson = org.json.JSONObject().apply {
+                put("tagKey", tag.tagKey)
+                put("displayName", tag.displayName)
+                put("rawUidHex", tag.rawUidHex)
+                put("techList", tag.techList)
+                put("actionPayload", tag.actionPayload)
+                put("isEnabled", tag.isEnabled)
+            }
+            tagsArray.put(tagJson)
+        }
+        json.put("tags", tagsArray)
+
+        val automationsArray = org.json.JSONArray()
+        for (auto in uiState.value.automations) {
+            val autoJson = org.json.JSONObject().apply {
+                put("id", auto.id)
+                put("name", auto.name)
+                put("isEnabled", auto.isEnabled)
+            }
+            automationsArray.put(autoJson)
+        }
+        json.put("automations", automationsArray)
+        return json.toString(2)
+    }
+
+    fun importBackupFromJson(jsonString: String) {
+        viewModelScope.launch {
+            try {
+                val json = org.json.JSONObject(jsonString)
+                val tagsArray = json.optJSONArray("tags")
+                var restoredCount = 0
+                if (tagsArray != null) {
+                    for (i in 0 until tagsArray.length()) {
+                        val t = tagsArray.getJSONObject(i)
+                        tagRepository.registerTag(
+                            tagKey = t.getString("tagKey"),
+                            displayName = t.getString("displayName"),
+                            rawUidHex = t.optString("rawUidHex", ""),
+                            techList = t.optString("techList", ""),
+                            actionPayload = t.optString("actionPayload", "")
+                        )
+                        restoredCount++
+                    }
+                }
+                _userMessage.value = "Restored $restoredCount tags from backup!"
+            } catch (e: Exception) {
+                _errorMessage.value = "Invalid backup format: ${e.message}"
+            }
         }
     }
 

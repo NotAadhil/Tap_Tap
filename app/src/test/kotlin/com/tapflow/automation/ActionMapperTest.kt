@@ -162,6 +162,34 @@ class ActionMapperTest {
     }
 
     @Test
+    fun newActions_roundTripSerialization_succeeds() {
+        val settings = AutomationAction.OpenSettings(settingType = "WIFI")
+        val settingsEntity = ActionMapper.toEntity(settings)
+        assertEquals(ActionMapper.TYPE_OPEN_SETTINGS, settingsEntity.type)
+        val restoredSettings = ActionMapper.toDomain(settingsEntity) as AutomationAction.OpenSettings
+        assertEquals("WIFI", restoredSettings.settingType)
+
+        val ringer = AutomationAction.SetRingerMode(ringerMode = "SILENT")
+        val ringerEntity = ActionMapper.toEntity(ringer)
+        assertEquals(ActionMapper.TYPE_SET_RINGER, ringerEntity.type)
+        val restoredRinger = ActionMapper.toDomain(ringerEntity) as AutomationAction.SetRingerMode
+        assertEquals("SILENT", restoredRinger.ringerMode)
+
+        val sms = AutomationAction.ComposeSms(phoneNumber = "+123456", message = "Hi")
+        val smsEntity = ActionMapper.toEntity(sms)
+        assertEquals(ActionMapper.TYPE_COMPOSE_SMS, smsEntity.type)
+        val restoredSms = ActionMapper.toDomain(smsEntity) as AutomationAction.ComposeSms
+        assertEquals("+123456", restoredSms.phoneNumber)
+        assertEquals("Hi", restoredSms.message)
+
+        val delay = AutomationAction.DelayAction(durationMs = 2000L)
+        val delayEntity = ActionMapper.toEntity(delay)
+        assertEquals(ActionMapper.TYPE_DELAY, delayEntity.type)
+        val restoredDelay = ActionMapper.toDomain(delayEntity) as AutomationAction.DelayAction
+        assertEquals(2000L, restoredDelay.durationMs)
+    }
+
+    @Test
     fun actionValidation_detectsErrors() {
         val invalidUrl = AutomationAction.OpenUrl(url = "not-a-url")
         assertEquals("URL must begin with http:// or https://", invalidUrl.validate())

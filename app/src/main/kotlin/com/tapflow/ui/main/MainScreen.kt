@@ -105,6 +105,9 @@ fun MainScreen(
         onSetCooldownSeconds = { viewModel.setCooldownSeconds(it) },
         onTestTag = { viewModel.testTag(it) },
         onTestAutomation = { viewModel.testAutomationById(it.id) },
+        onDuplicateAutomation = { viewModel.duplicateAutomation(it) },
+        onExportBackup = { viewModel.exportBackupToJson() },
+        onImportBackup = { viewModel.importBackupFromJson(it) },
         onRequestNotificationPermission = onRequestNotificationPermission,
         onClearMessages = { viewModel.clearMessages() },
         showSimulateDialog = showSimulateDialog
@@ -148,6 +151,9 @@ fun MainScreenContent(
     onSetCooldownSeconds: (Long) -> Unit = {},
     onTestTag: (RegisteredTagEntity) -> Unit = {},
     onTestAutomation: (AutomationEntity) -> Unit = {},
+    onDuplicateAutomation: (AutomationEntity) -> Unit = {},
+    onExportBackup: () -> String = { "" },
+    onImportBackup: (String) -> Unit = {} ,
     onRequestNotificationPermission: () -> Unit = {},
     onClearMessages: () -> Unit = {},
     showSimulateDialog: Boolean = false
@@ -289,7 +295,8 @@ fun MainScreenContent(
                         onNewAutomation = onNewAutomation,
                         onEditAutomation = onEditAutomation,
                         onDeleteAutomation = onDeleteAutomation,
-                        onTestAutomation = onTestAutomation
+                        onTestAutomation = onTestAutomation,
+                        onDuplicateAutomation = onDuplicateAutomation
                     )
                 }
                 AppTab.HISTORY -> {
@@ -307,7 +314,9 @@ fun MainScreenContent(
                         onToggleHapticFeedback = onToggleHapticFeedback,
                         onSetCooldownSeconds = onSetCooldownSeconds,
                         onClearHistory = onClearHistory,
-                        onRequestNotificationPermission = onRequestNotificationPermission
+                        onRequestNotificationPermission = onRequestNotificationPermission,
+                        onExportBackup = onExportBackup,
+                        onImportBackup = onImportBackup
                     )
                 }
             }

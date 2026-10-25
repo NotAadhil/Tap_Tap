@@ -29,10 +29,13 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FlashlightOn
+import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -69,7 +72,8 @@ fun AutomationScreenContent(
     onNewAutomation: () -> Unit,
     onEditAutomation: (AutomationEntity) -> Unit,
     onDeleteAutomation: (AutomationEntity) -> Unit,
-    onTestAutomation: (AutomationEntity) -> Unit = {}
+    onTestAutomation: (AutomationEntity) -> Unit = {},
+    onDuplicateAutomation: (AutomationEntity) -> Unit = {}
 ) {
     var automationToDelete by remember { mutableStateOf<AutomationEntity?>(null) }
 
@@ -203,6 +207,15 @@ fun AutomationScreenContent(
                                 modifier = Modifier.padding(end = 4.dp)
                             ) {
                                 Text("Test", fontSize = 11.sp)
+                            }
+
+                            IconButton(onClick = { onDuplicateAutomation(auto) }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.ContentCopy,
+                                    contentDescription = "Duplicate",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
 
                             IconButton(onClick = { automationToDelete = auto }) {
@@ -381,6 +394,10 @@ fun AutomationBuilderDialog(
                                         is AutomationAction.ShowNotification -> Icons.Outlined.Notifications
                                         is AutomationAction.PlaySound -> Icons.Outlined.VolumeUp
                                         is AutomationAction.ShowMessage -> Icons.Outlined.ChatBubbleOutline
+                                        is AutomationAction.OpenSettings -> Icons.Outlined.Settings
+                                        is AutomationAction.SetRingerMode -> Icons.Outlined.NotificationsActive
+                                        is AutomationAction.ComposeSms -> Icons.Outlined.ChatBubbleOutline
+                                        is AutomationAction.DelayAction -> Icons.Outlined.HourglassEmpty
                                     }
 
                                     Surface(
