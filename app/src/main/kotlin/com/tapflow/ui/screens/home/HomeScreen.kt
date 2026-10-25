@@ -65,7 +65,8 @@ fun HomeScreenContent(
     activeScanEvent: ScanEvent?,
     onNavigateTab: (AppTab) -> Unit,
     onOpenSimulate: () -> Unit,
-    onOpenTagDetail: (RegisteredTagEntity) -> Unit
+    onOpenTagDetail: (RegisteredTagEntity) -> Unit,
+    onTestTag: (RegisteredTagEntity) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -226,18 +227,18 @@ fun HomeScreenContent(
                         .fillMaxWidth()
                         .clickable { onOpenTagDetail(tag) },
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
                     ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(18.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (tag.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier.size(36.dp)
                         ) {
@@ -264,6 +265,15 @@ fun HomeScreenContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        OutlinedButton(
+                            onClick = { onTestTag(tag) },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            shape = CircleShape,
+                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f))
+                        ) {
+                            Text("Test", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
             }
@@ -282,20 +292,20 @@ private fun MetricCard(
     Card(
         modifier = modifier.clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(18.dp)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(14.dp),
             horizontalAlignment = Alignment.Start
         ) {
             Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(28.dp)
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                modifier = Modifier.size(30.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -327,14 +337,15 @@ private fun NfcHardwareStatusCard(
     isEnabled: Boolean,
     onOpenSimulate: () -> Unit
 ) {
+    val isReady = isAvailable && isEnabled
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (!isAvailable || !isEnabled) Color(0xFFFFF3E0) else Color(0xFFE8F5E9)
+            containerColor = if (!isReady) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, if (!isReady) MaterialTheme.colorScheme.error.copy(alpha = 0.25f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(20.dp)
     ) {
         Row(
             modifier = Modifier
@@ -345,15 +356,15 @@ private fun NfcHardwareStatusCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (!isAvailable) Color(0xFFFFEBEE) else if (!isEnabled) Color(0xFFFFF3E0) else Color(0xFFC8E6C9),
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (!isReady) MaterialTheme.colorScheme.error.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (!isAvailable) Icons.Outlined.ErrorOutline else if (!isEnabled) Icons.Outlined.WarningAmber else Icons.Outlined.CheckCircle,
                             contentDescription = null,
-                            tint = if (!isAvailable) Color(0xFFC62828) else if (!isEnabled) Color(0xFFB45309) else Color(0xFF1B5E20),
+                            tint = if (!isReady) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -364,12 +375,12 @@ private fun NfcHardwareStatusCard(
                         text = if (!isAvailable) "NFC Not Available" else if (!isEnabled) "NFC Disabled in Settings" else "NFC Ready & Listening",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        color = Color(0xFF1B5E20)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = if (isAvailable && isEnabled) "Tap an NFC tag to trigger actions" else "Use Simulator or enable NFC in system settings",
-                        fontSize = 12.sp,
-                        color = Color(0xFF2E7D32)
+                        text = if (isReady) "Tap an NFC tag to trigger actions" else "Use Simulator or enable NFC in system settings",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

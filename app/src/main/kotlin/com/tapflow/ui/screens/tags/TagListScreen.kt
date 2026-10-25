@@ -62,7 +62,8 @@ fun TagListScreenContent(
     automations: List<AutomationEntity>,
     onSelectTag: (RegisteredTagEntity) -> Unit,
     onToggleEnabled: (tagKey: String, isEnabled: Boolean) -> Unit,
-    onDeleteTag: (RegisteredTagEntity) -> Unit
+    onDeleteTag: (RegisteredTagEntity) -> Unit,
+    onTestTag: (RegisteredTagEntity) -> Unit = {}
 ) {
     var tagToDelete by remember { mutableStateOf<RegisteredTagEntity?>(null) }
 
@@ -139,18 +140,18 @@ fun TagListScreenContent(
                             .fillMaxWidth()
                             .clickable { onSelectTag(tag) },
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
                         ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(20.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 color = if (tag.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier.size(42.dp)
                             ) {
@@ -214,6 +215,16 @@ fun TagListScreenContent(
                                     fontFamily = FontFamily.Monospace,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+
+                            OutlinedButton(
+                                onClick = { onTestTag(tag) },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                shape = CircleShape,
+                                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text("Test", fontSize = 11.sp)
                             }
 
                             Switch(

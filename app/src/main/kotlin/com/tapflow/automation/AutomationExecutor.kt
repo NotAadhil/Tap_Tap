@@ -99,9 +99,30 @@ class AutomationExecutor(
             }
 
             is AutomationAction.OpenUrl -> {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(action.url)).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                var targetUrl = action.url.trim()
+                if (!targetUrl.startsWith("http://", ignoreCase = true) && !targetUrl.startsWith("https://", ignoreCase = true)) {
+                    targetUrl = "https://$targetUrl"
                 }
+                val uri = Uri.parse(targetUrl)
+                val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+
+                // If URL targets YouTube, route directly to the official YouTube app if installed
+                val isYouTube = targetUrl.contains("youtube.com", ignoreCase = true) ||
+                        targetUrl.contains("youtu.be", ignoreCase = true)
+                if (isYouTube) {
+                    try {
+                        val pm = context.packageManager
+                        val ytIntent = Intent(Intent.ACTION_VIEW, uri).setPackage("com.google.android.youtube")
+                        if (ytIntent.resolveActivity(pm) != null) {
+                            intent.setPackage("com.google.android.youtube")
+                        }
+                    } catch (_: Exception) {
+                        // Fall back to system default handler
+                    }
+                }
+
                 val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     android.app.ActivityOptions.makeBasic().apply {
                         @Suppress("DEPRECATION")

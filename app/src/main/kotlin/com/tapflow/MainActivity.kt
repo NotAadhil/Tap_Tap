@@ -1,14 +1,9 @@
 package com.tapflow
 
 import android.Manifest
-import android.app.KeyguardManager
-import android.content.Context
 import android.content.Intent
-import android.nfc.NfcAdapter
-import android.nfc.Tag
 import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,16 +12,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.tapflow.nfc.model.TagData
 import com.tapflow.ui.theme.TapFlowTheme
 
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        const val EXTRA_UNREGISTERED_TAG = "extra_unregistered_tag"
+    }
 
     private val container: AppContainer by lazy {
         (application as TapFlowApp).container
     }
 
     private val requestNotificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
             // System permission response handled
         }
 
@@ -34,13 +34,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Enable show when locked and turn screen on for NFC lockscreen triggers
-        setupLockscreenVisibility()
-
-        // Handle cold-start launch via NFC tag only on fresh launch (not configuration change/rotation)
-        if (savedInstanceState == null) {
-            handleNfcIntent(intent)
-        }
+        handleUnregisteredTagIntent(intent)
 
         setContent {
             TapFlowTheme {
@@ -63,82 +57,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun setupLockscreenVisibility() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-            )
-        }
-    }
-
-    private var isActivityResumed: Boolean = false
-
     override fun onResume() {
         super.onResume()
-        isActivityResumed = true
         container.nfcManager.startReaderMode(this)
     }
 
     override fun onPause() {
         super.onPause()
-        isActivityResumed = false
         container.nfcManager.stopReaderMode(this)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleNfcIntent(intent)
+        handleUnregisteredTagIntent(intent)
     }
 
-    private fun handleNfcIntent(intent: Intent?) {
+    private fun handleUnregisteredTagIntent(intent: Intent?) {
         if (intent == null) return
-        val action = intent.action ?: return
-        if (action in listOf(
-                NfcAdapter.ACTION_TECH_DISCOVERED,
-                NfcAdapter.ACTION_NDEF_DISCOVERED,
-                NfcAdapter.ACTION_TAG_DISCOVERED
-            )
-        ) {
-            val wasInBackground = !isActivityResumed
+        val tagData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getSerializableExtra(EXTRA_UNREGISTERED_TAG, TagData::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getSerializableExtra(EXTRA_UNREGISTERED_TAG) as? TagData
+        }
 
-            // Dismiss keyguard if locked so the user can interact with launched apps
-            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-            if (keyguardManager?.isKeyguardLocked == true) {
-                keyguardManager.requestDismissKeyguard(this, null)
-            }
-
-            val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
-            }
-            tag?.let {
-                container.nfcManager.handleTag(it) { event ->
-                    if (wasInBackground) {
-                        when (event) {
-                            is com.tapflow.nfc.ScanEvent.Matched,
-                            is com.tapflow.nfc.ScanEvent.Debounced,
-                            is com.tapflow.nfc.ScanEvent.Error -> {
-                                runOnUiThread {
-                                    moveTaskToBack(true)
-                                }
-                            }
-                            is com.tapflow.nfc.ScanEvent.Unregistered -> {
-                                // Keep activity in foreground so user can register the new tag
-                            }
-                        }
-                    }
-                }
-                // Consume the action to prevent re-processing on subsequent state restoration
-                intent.action = null
-            }
+        if (tagData != null) {
+            container.coordinator.onTagDetected(tagData)
+            intent.removeExtra(EXTRA_UNREGISTERED_TAG)
         }
     }
 }

@@ -58,7 +58,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tapflow.ui.theme.ResearchTeal
 
 @Composable
 fun SettingsScreenContent(
@@ -105,7 +104,7 @@ fun SettingsScreenContent(
                 ),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -159,7 +158,7 @@ fun SettingsScreenContent(
                 ),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -194,12 +193,12 @@ fun SettingsScreenContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf(3L, 5L, 10L).forEach { seconds ->
+                        listOf(2L, 3L, 5L, 8L, 10L).forEach { seconds ->
                             val isSelected = cooldownSeconds == seconds
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { onSetCooldownSeconds(seconds) },
-                                label = { Text("${seconds}s Cooldown") },
+                                label = { Text("${seconds}s") },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                     selectedLabelColor = MaterialTheme.colorScheme.primary
@@ -220,7 +219,7 @@ fun SettingsScreenContent(
                 ),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -283,7 +282,7 @@ fun SettingsScreenContent(
                 ),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -336,7 +335,7 @@ fun SettingsScreenContent(
                 ),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -394,7 +393,7 @@ fun SettingsScreenContent(
                 ),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -469,7 +468,7 @@ fun SettingsScreenContent(
                 ),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Tech Stack & Local Architecture", fontWeight = FontWeight.Bold, fontSize = 15.sp)

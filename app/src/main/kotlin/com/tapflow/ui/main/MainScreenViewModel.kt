@@ -432,6 +432,33 @@ class MainScreenViewModel(
         }
     }
 
+    fun testAutomationById(automationId: Long) {
+        viewModelScope.launch {
+            val actions = automationRepository.getActions(automationId)
+            if (actions.isEmpty()) {
+                _userMessage.value = "This automation has no actions."
+                return@launch
+            }
+            val results = automationExecutor.execute("TEST_ID_$automationId", actions)
+            val successCount = results.count { it is ActionResult.Success }
+            _userMessage.value = "Executed test: $successCount/${actions.size} actions succeeded"
+        }
+    }
+
+    fun testTag(tag: RegisteredTagEntity) {
+        viewModelScope.launch {
+            if (tag.automationId != null) {
+                testAutomationById(tag.automationId)
+            } else if (tag.actionPayload.isNotBlank()) {
+                val singleAction = AutomationAction.OpenUrl(url = tag.actionPayload)
+                automationExecutor.execute("TEST_TAG_${tag.tagKey}", listOf(singleAction))
+                _userMessage.value = "Tested action for '${tag.displayName}'"
+            } else {
+                _userMessage.value = "Tag has no action assigned yet."
+            }
+        }
+    }
+
     fun deleteAutomation(automation: AutomationEntity) {
         viewModelScope.launch {
             automationRepository.deleteAutomation(automation.id)

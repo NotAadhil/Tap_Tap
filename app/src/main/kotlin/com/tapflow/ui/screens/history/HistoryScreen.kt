@@ -180,11 +180,11 @@ private fun LogCard(log: ExecutionLogEntity) {
             .fillMaxWidth()
             .clickable { expanded = !expanded },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -194,15 +194,15 @@ private fun LogCard(log: ExecutionLogEntity) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (log.overallSuccess) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (log.overallSuccess) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
                         modifier = Modifier.size(36.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = if (log.overallSuccess) Icons.Outlined.Check else Icons.Outlined.Close,
                                 contentDescription = null,
-                                tint = if (log.overallSuccess) Color(0xFF2E7D32) else Color(0xFFC62828),
+                                tint = if (log.overallSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(18.dp)
                             )
                         }

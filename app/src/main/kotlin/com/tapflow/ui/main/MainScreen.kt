@@ -103,6 +103,8 @@ fun MainScreen(
         onClearHistory = { viewModel.clearExecutionHistory() },
         onToggleHapticFeedback = { viewModel.toggleHapticFeedback(it) },
         onSetCooldownSeconds = { viewModel.setCooldownSeconds(it) },
+        onTestTag = { viewModel.testTag(it) },
+        onTestAutomation = { viewModel.testAutomationById(it.id) },
         onRequestNotificationPermission = onRequestNotificationPermission,
         onClearMessages = { viewModel.clearMessages() },
         showSimulateDialog = showSimulateDialog
@@ -144,6 +146,8 @@ fun MainScreenContent(
     onClearHistory: () -> Unit = {},
     onToggleHapticFeedback: (Boolean) -> Unit = {},
     onSetCooldownSeconds: (Long) -> Unit = {},
+    onTestTag: (RegisteredTagEntity) -> Unit = {},
+    onTestAutomation: (AutomationEntity) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onClearMessages: () -> Unit = {},
     showSimulateDialog: Boolean = false
@@ -167,38 +171,50 @@ fun MainScreenContent(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+                            modifier = Modifier.size(32.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_tapflow_mark),
                                     contentDescription = "TapFlow",
-                                    tint = androidx.compose.ui.graphics.Color.Unspecified,
-                                    modifier = Modifier.size(18.dp)
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "TapFlow",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column {
+                            Text(
+                                text = "TapFlow",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.3.sp
+                            )
+                            Text(
+                                text = "Artisan NFC Automation",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                fontSize = 10.sp
+                            )
+                        }
                     }
                 },
                 actions = {
                     FilledTonalButton(
                         onClick = onOpenSimulateDialog,
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        shape = CircleShape,
+                        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Text("Simulate Tap", fontSize = 12.sp)
+                        Text("Simulate", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.92f),
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
@@ -253,7 +269,8 @@ fun MainScreenContent(
                         activeScanEvent = state.activeScanEvent,
                         onNavigateTab = onSelectTab,
                         onOpenSimulate = onOpenSimulateDialog,
-                        onOpenTagDetail = onSelectTagForDetail
+                        onOpenTagDetail = onSelectTagForDetail,
+                        onTestTag = onTestTag
                     )
                 }
                 AppTab.TAGS -> {
@@ -262,7 +279,8 @@ fun MainScreenContent(
                         automations = state.automations,
                         onSelectTag = onSelectTagForDetail,
                         onToggleEnabled = onToggleTagEnabled,
-                        onDeleteTag = onDeleteTag
+                        onDeleteTag = onDeleteTag,
+                        onTestTag = onTestTag
                     )
                 }
                 AppTab.AUTOMATIONS -> {
@@ -270,7 +288,8 @@ fun MainScreenContent(
                         automations = state.automations,
                         onNewAutomation = onNewAutomation,
                         onEditAutomation = onEditAutomation,
-                        onDeleteAutomation = onDeleteAutomation
+                        onDeleteAutomation = onDeleteAutomation,
+                        onTestAutomation = onTestAutomation
                     )
                 }
                 AppTab.HISTORY -> {

@@ -63,6 +63,10 @@ class NfcDispatchCoordinator(
     private var lastRawUid: String? = null
     private var lastExecutionTimeMs: Long = 0L
     private var lastSeenTimeMs: Long = 0L
+    private var lastGlobalExecutionTimeMs: Long = 0L
+
+    private var lastUnknownUid: String? = null
+    private var lastUnknownTimeMs: Long = 0L
 
     fun onTagDetected(tagData: TagData, onHandled: ((ScanEvent) -> Unit)? = null) {
         scope.launch {
@@ -92,43 +96,59 @@ class NfcDispatchCoordinator(
             val registeredTag = tagRepository.getTag(tagData.tagKey, tagData.rawUidHex)
 
             if (registeredTag == null) {
+                val now = System.currentTimeMillis()
+                val isRecentUnknown = (tagData.rawUidHex.isNotEmpty() && tagData.rawUidHex.equals(lastUnknownUid, ignoreCase = true)) &&
+                        (now - lastUnknownTimeMs) < 5000L
+                if (isRecentUnknown) {
+                    return@launch
+                }
+                lastUnknownUid = tagData.rawUidHex
+                lastUnknownTimeMs = now
+
                 val unregEvent = ScanEvent.Unregistered(tagData)
                 _scanEvents.emit(unregEvent)
                 onHandled?.invoke(unregEvent)
                 postUnknownTagNotification(tagData)
-            } else {
-                if (!registeredTag.isEnabled) {
-                    val disabledEvent = ScanEvent.Matched(
-                        tag = registeredTag,
-                        result = ActionResult.Failure(reason = "Tag '${registeredTag.displayName}' is disabled."),
-                        isExecuted = false
-                    )
-                    _scanEvents.emit(disabledEvent)
-                    onHandled?.invoke(disabledEvent)
-                    return@launch
-                }
+                return@launch
+            }
 
-                // Cooldown and continuous hold suppression
-                val now = System.currentTimeMillis()
-                val cooldown = getCooldownMs()
-                val isSameTag = registeredTag.tagKey.equals(lastTagKey, ignoreCase = true) ||
-                        registeredTag.rawUidHex.equals(lastRawUid, ignoreCase = true)
+            if (!registeredTag.isEnabled) {
+                val disabledEvent = ScanEvent.Matched(
+                    tag = registeredTag,
+                    result = ActionResult.Failure(reason = "Tag '${registeredTag.displayName}' is disabled."),
+                    isExecuted = false
+                )
+                _scanEvents.emit(disabledEvent)
+                onHandled?.invoke(disabledEvent)
+                return@launch
+            }
 
-                val isContinuousHold = isSameTag && (now - lastSeenTimeMs) < 2500L
-                val isWithinCooldown = isSameTag && (now - lastExecutionTimeMs) < cooldown
+            // Cooldown, angle bounce & continuous hold suppression
+            val now = System.currentTimeMillis()
+            val cooldown = getCooldownMs()
+            val isSameUid = registeredTag.rawUidHex.isNotEmpty() && registeredTag.rawUidHex.equals(lastRawUid, ignoreCase = true)
+            val isSameKey = registeredTag.tagKey.equals(lastTagKey, ignoreCase = true)
+            val isSameTag = isSameUid || isSameKey
 
-                if (isSameTag && (isWithinCooldown || isContinuousHold)) {
-                    lastSeenTimeMs = now
-                    val debouncedEvent = ScanEvent.Debounced(registeredTag)
-                    _scanEvents.emit(debouncedEvent)
-                    onHandled?.invoke(debouncedEvent)
-                    return@launch
-                }
+            // Angle flicker & continuous hold guard:
+            // If tag was seen within 3000ms, it is currently sitting in the phone's RF field
+            val isContinuousHold = isSameTag && (now - lastSeenTimeMs) < 3000L
+            val isWithinCooldown = isSameTag && (now - lastExecutionTimeMs) < cooldown
+            val isGlobalRapidFire = (now - lastGlobalExecutionTimeMs) < 1500L
 
+            if ((isSameTag && (isWithinCooldown || isContinuousHold)) || isGlobalRapidFire) {
                 lastSeenTimeMs = now
-                lastTagKey = registeredTag.tagKey
-                lastRawUid = registeredTag.rawUidHex
-                lastExecutionTimeMs = now
+                val debouncedEvent = ScanEvent.Debounced(registeredTag)
+                _scanEvents.emit(debouncedEvent)
+                onHandled?.invoke(debouncedEvent)
+                return@launch
+            }
+
+            lastSeenTimeMs = now
+            lastTagKey = registeredTag.tagKey
+            lastRawUid = registeredTag.rawUidHex
+            lastExecutionTimeMs = now
+            lastGlobalExecutionTimeMs = now
 
                 val startTime = System.currentTimeMillis()
 
@@ -202,7 +222,6 @@ class NfcDispatchCoordinator(
                     _scanEvents.emit(emptyEvent)
                     onHandled?.invoke(emptyEvent)
                 }
-            }
         }
     }
 

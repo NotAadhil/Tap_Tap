@@ -664,7 +664,11 @@ fun ActionConfigDialog(
                             )
                         }
                         "OPEN_URL" -> {
-                            val err = ActionValidator.validateUrl(url)
+                            var cleanUrl = url.trim()
+                            if (!cleanUrl.startsWith("http://", ignoreCase = true) && !cleanUrl.startsWith("https://", ignoreCase = true)) {
+                                cleanUrl = "https://$cleanUrl"
+                            }
+                            val err = ActionValidator.validateUrl(cleanUrl)
                             if (err != null) {
                                 errorMessage = err
                                 return@Button
@@ -675,7 +679,7 @@ fun ActionConfigDialog(
                                     automationId = existingAction?.automationId ?: 0,
                                     sortOrder = existingAction?.sortOrder ?: 0,
                                     isEnabled = existingAction?.isEnabled ?: true,
-                                    url = url.trim()
+                                    url = cleanUrl
                                 )
                             )
                         }

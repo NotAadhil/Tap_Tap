@@ -3,42 +3,48 @@ package com.tapflow.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Perplexity Research Editorial Light (Warm Beige) Theme Palette.
- * Designed with a scholarly, high-contrast, paper-like warmth.
- * Replaces generic AI glassmorphism with crisp ivory cards, hairline warm borders,
- * deep ink typography, and signature muted research teal accents.
+ * Modern Artistic Pastel Beige & Frosted Glass Palette.
+ * Combines warm organic pastel beige tones (oat milk, almond, warm linen)
+ * with translucent frosted glass card surfaces, hairline borders, and soft pastel accents.
  */
 
-// Backgrounds & Surfaces (Light / Research Beige)
-val ResearchBeigeBg = Color(0xFFFBF9F5)          // Main background (warm off-white/parchment)
-val ResearchSurface = Color(0xFFFFFFFF)          // Primary card surface (crisp clean ivory)
-val ResearchSurfaceSubtle = Color(0xFFF3EFE8)    // Subtle container / chip surface
-val ResearchBorder = Color(0xFFE6E0D4)           // Hairline warm border
-val ResearchBorderStrong = Color(0xFFD3CABE)     // Stronger divider
+// Backgrounds & Surfaces (Artistic Pastel Beige)
+val PastelBeigeBg = Color(0xFFF9F7F2)            // Soft oatmeal canvas background
+val PastelGlassSurface = Color(0xF2FFFFFF)       // 95% opacity warm frosted ivory glass
+val PastelGlassSurfaceTranslucent = Color(0xCCFFFFFF) // 80% opacity translucent milk glass
+val PastelSurfaceSubtle = Color(0xFFF0EBE1)      // Warm pastel parchment container
+val PastelBorder = Color(0x389E9080)             // Delicate hairline warm stone glass border
+val PastelBorderStrong = Color(0x528A7D6D)       // Expressive hairline outline
 
 // Typography Colors
-val ResearchTextPrimary = Color(0xFF1B1A17)      // Deep warm ink charcoal
-val ResearchTextSecondary = Color(0xFF6B6456)    // Warm muted stone slate
-val ResearchTextTertiary = Color(0xFF9E9585)     // Subdued caption
+val PastelTextPrimary = Color(0xFF1E1B18)        // Deep warm graphite ink
+val PastelTextSecondary = Color(0xFF635D54)      // Warm muted slate charcoal
+val PastelTextTertiary = Color(0xFF999184)       // Gentle caption
 
-// Signature Accents
-val ResearchTeal = Color(0xFF1E6C65)             // Signature Research Teal Accent
-val ResearchTealLight = Color(0xFF2B837B)        // Lighter teal for interactive hover/press
-val ResearchTealContainer = Color(0xFFE2EFECE)   // Soft teal pill tint
-val ResearchOnTeal = Color(0xFFFFFFFF)           // White text on teal
+// Signature Artistic Pastel Accents
+val PastelSage = Color(0xFF3E6653)               // Muted artistic sage green
+val PastelSageLight = Color(0xFF56846D)          // Light interactive sage
+val PastelSageContainer = Color(0xFFE4EEE8)      // Soft pastel matcha container
+val PastelOnSage = Color(0xFFFFFFFF)             // Pure white text on sage
 
-val ResearchAmber = Color(0xFFB45309)            // Warm terracotta / amber
-val ResearchAmberContainer = Color(0xFFFEF3C7)   // Amber pill tint
+val PastelTerracotta = Color(0xFFB55D38)         // Warm artistic clay/terracotta
+val PastelTerracottaContainer = Color(0xFFF8ECE6)// Soft pastel blush container
 
-val ResearchError = Color(0xFFB91C1C)            // Refined ruby red
-val ResearchErrorContainer = Color(0xFFFEE2E2)   // Soft red container
+val PastelAmber = Color(0xFFAD6B1E)              // Warm pastel amber
+val PastelAmberContainer = Color(0xFFFAF0E0)      // Soft pastel vanilla container
 
-// Dark Mode Variant (Warm Charcoal / Espresso, not sterile blue-gray)
-val ResearchDarkBg = Color(0xFF151412)           // Warm dark espresso
-val ResearchDarkSurface = Color(0xFF1E1D1A)      // Dark card surface
-val ResearchDarkSurfaceSubtle = Color(0xFF282622)// Dark pill surface
-val ResearchDarkBorder = Color(0xFF35322C)       // Dark hairline border
-val ResearchDarkTextPrimary = Color(0xFFF3EFE8)  // Warm cream text
-val ResearchDarkTextSecondary = Color(0xFFA69E90)// Warm slate text
-val ResearchDarkTeal = Color(0xFF389B91)         // Lighter teal for dark mode
-val ResearchDarkTealContainer = Color(0xFF1A3935)// Dark teal container
+val PastelLavender = Color(0xFF5E6482)           // Soft artistic slate-lavender
+val PastelLavenderContainer = Color(0xFFEBEFF6)  // Pastel cloud container
+
+val PastelError = Color(0xFFB3261E)              // Softened crimson
+val PastelErrorContainer = Color(0xFFFDE8E8)      // Soft red container
+
+// Dark Mode Variant (Warm Obsidian Espresso with Frosted Smoked Glass)
+val PastelDarkBg = Color(0xFF141311)             // Warm obsidian espresso background
+val PastelDarkSurface = Color(0xE61F1E1B)        // Frosted smoked glass card
+val PastelDarkSurfaceSubtle = Color(0xFF292723)  // Dark parchment container
+val PastelDarkBorder = Color(0x40FFFFFF)         // Translucent dark glass border
+val PastelDarkTextPrimary = Color(0xFFF4F0E8)    // Soft cream text
+val PastelDarkTextSecondary = Color(0xFFA8A093)  // Warm slate text
+val PastelDarkSage = Color(0xFF6FA188)           // Bright pastel sage for dark mode
+val PastelDarkSageContainer = Color(0xFF1B3327)  // Deep matcha container

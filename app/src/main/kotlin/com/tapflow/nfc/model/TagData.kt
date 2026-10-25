@@ -15,7 +15,7 @@ data class TagData(
     val techList: List<String>,
     val hasRandomUid: Boolean = false,
     val isPaymentCard: Boolean = false
-) {
+) : java.io.Serializable {
     val techSummary: String
         get() = techList.joinToString(", ") { it.substringAfterLast('.') }
 }

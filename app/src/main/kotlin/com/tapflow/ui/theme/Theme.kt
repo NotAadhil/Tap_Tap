@@ -7,62 +7,60 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 /**
- * Editorial Research Color Schemes.
- * Prioritizes tactile parchment warmth, high legibility, and refined pill badges
- * matching Perplexity's light research aesthetic.
+ * Modern Artistic Frosted Glass & Pastel Beige Theme.
  */
 private val LightColorScheme = lightColorScheme(
-    primary = ResearchTeal,
-    onPrimary = ResearchOnTeal,
-    primaryContainer = ResearchTealContainer,
-    onPrimaryContainer = ResearchTeal,
-    secondary = ResearchTextSecondary,
-    onSecondary = ResearchSurface,
-    secondaryContainer = ResearchSurfaceSubtle,
-    onSecondaryContainer = ResearchTextPrimary,
-    tertiary = ResearchAmber,
-    onTertiary = ResearchSurface,
-    tertiaryContainer = ResearchAmberContainer,
-    onTertiaryContainer = ResearchAmber,
-    background = ResearchBeigeBg,
-    onBackground = ResearchTextPrimary,
-    surface = ResearchSurface,
-    onSurface = ResearchTextPrimary,
-    surfaceVariant = ResearchSurfaceSubtle,
-    onSurfaceVariant = ResearchTextSecondary,
-    outline = ResearchBorder,
-    outlineVariant = ResearchBorderStrong,
-    error = ResearchError,
-    onError = ResearchSurface,
-    errorContainer = ResearchErrorContainer,
-    onErrorContainer = ResearchError
+    primary = PastelSage,
+    onPrimary = PastelOnSage,
+    primaryContainer = PastelSageContainer,
+    onPrimaryContainer = PastelSage,
+    secondary = PastelTextSecondary,
+    onSecondary = PastelGlassSurface,
+    secondaryContainer = PastelSurfaceSubtle,
+    onSecondaryContainer = PastelTextPrimary,
+    tertiary = PastelTerracotta,
+    onTertiary = PastelGlassSurface,
+    tertiaryContainer = PastelTerracottaContainer,
+    onTertiaryContainer = PastelTerracotta,
+    background = PastelBeigeBg,
+    onBackground = PastelTextPrimary,
+    surface = PastelGlassSurface,
+    onSurface = PastelTextPrimary,
+    surfaceVariant = PastelSurfaceSubtle,
+    onSurfaceVariant = PastelTextSecondary,
+    outline = PastelBorder,
+    outlineVariant = PastelBorderStrong,
+    error = PastelError,
+    onError = PastelGlassSurface,
+    errorContainer = PastelErrorContainer,
+    onErrorContainer = PastelError
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = ResearchDarkTeal,
-    onPrimary = ResearchDarkBg,
-    primaryContainer = ResearchDarkTealContainer,
-    onPrimaryContainer = ResearchDarkTeal,
-    secondary = ResearchDarkTextSecondary,
-    onSecondary = ResearchDarkSurface,
-    secondaryContainer = ResearchDarkSurfaceSubtle,
-    onSecondaryContainer = ResearchDarkTextPrimary,
-    tertiary = ResearchAmber,
-    onTertiary = ResearchDarkSurface,
-    tertiaryContainer = ResearchDarkTealContainer,
-    onTertiaryContainer = ResearchAmber,
-    background = ResearchDarkBg,
-    onBackground = ResearchDarkTextPrimary,
-    surface = ResearchDarkSurface,
-    onSurface = ResearchDarkTextPrimary,
-    surfaceVariant = ResearchDarkSurfaceSubtle,
-    onSurfaceVariant = ResearchDarkTextSecondary,
-    outline = ResearchDarkBorder,
-    outlineVariant = ResearchDarkBorder,
-    error = ResearchError,
-    onError = ResearchDarkSurface,
-    errorContainer = ResearchErrorContainer,
-    onErrorContainer = ResearchError
+    primary = PastelDarkSage,
+    onPrimary = PastelDarkBg,
+    primaryContainer = PastelDarkSageContainer,
+    onPrimaryContainer = PastelDarkSage,
+    secondary = PastelDarkTextSecondary,
+    onSecondary = PastelDarkSurface,
+    secondaryContainer = PastelDarkSurfaceSubtle,
+    onSecondaryContainer = PastelDarkTextPrimary,
+    tertiary = PastelTerracotta,
+    onTertiary = PastelDarkSurface,
+    tertiaryContainer = PastelDarkSageContainer,
+    onTertiaryContainer = PastelAmber,
+    background = PastelDarkBg,
+    onBackground = PastelDarkTextPrimary,
+    surface = PastelDarkSurface,
+    onSurface = PastelDarkTextPrimary,
+    surfaceVariant = PastelDarkSurfaceSubtle,
+    onSurfaceVariant = PastelDarkTextSecondary,
+    outline = PastelDarkBorder,
+    outlineVariant = PastelDarkBorder,
+    error = PastelError,
+    onError = PastelDarkSurface,
+    errorContainer = PastelErrorContainer,
+    onErrorContainer = PastelError
 )
 
 @Composable
@@ -71,7 +69,6 @@ fun TapFlowTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    // Explicitly use the Perplexity Research Beige theme
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(

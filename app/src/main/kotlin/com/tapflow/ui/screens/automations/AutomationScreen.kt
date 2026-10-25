@@ -68,7 +68,8 @@ fun AutomationScreenContent(
     automations: List<AutomationEntity>,
     onNewAutomation: () -> Unit,
     onEditAutomation: (AutomationEntity) -> Unit,
-    onDeleteAutomation: (AutomationEntity) -> Unit
+    onDeleteAutomation: (AutomationEntity) -> Unit,
+    onTestAutomation: (AutomationEntity) -> Unit = {}
 ) {
     var automationToDelete by remember { mutableStateOf<AutomationEntity?>(null) }
 
@@ -154,18 +155,18 @@ fun AutomationScreenContent(
                             .fillMaxWidth()
                             .clickable { onEditAutomation(auto) },
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
                         ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(20.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 modifier = Modifier.size(42.dp)
                             ) {
@@ -192,6 +193,16 @@ fun AutomationScreenContent(
                                     fontSize = 12.sp,
                                     color = if (auto.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                                 )
+                            }
+
+                            OutlinedButton(
+                                onClick = { onTestAutomation(auto) },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                shape = CircleShape,
+                                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+                                modifier = Modifier.padding(end = 4.dp)
+                            ) {
+                                Text("Test", fontSize = 11.sp)
                             }
 
                             IconButton(onClick = { automationToDelete = auto }) {
