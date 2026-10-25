@@ -357,7 +357,7 @@ class MainScreenViewModel(
         val list = _editingActions.value.toMutableList()
         val item = list.removeAt(index)
         list.add(index - 1, item)
-        _editingActions.value = list
+        _editingActions.value = list.mapIndexed { i, action -> action.withSortOrder(i) }
     }
 
     fun moveActionDown(index: Int) {
@@ -365,20 +365,13 @@ class MainScreenViewModel(
         if (index >= list.size - 1) return
         val item = list.removeAt(index)
         list.add(index + 1, item)
-        _editingActions.value = list
+        _editingActions.value = list.mapIndexed { i, action -> action.withSortOrder(i) }
     }
 
     fun toggleActionEnabled(index: Int, isEnabled: Boolean) {
         val list = _editingActions.value.toMutableList()
         if (index in list.indices) {
-            val item = list[index]
-            val updated = when (item) {
-                is AutomationAction.OpenApp -> item.copy(isEnabled = isEnabled)
-                is AutomationAction.OpenUrl -> item.copy(isEnabled = isEnabled)
-                is AutomationAction.ShowNotification -> item.copy(isEnabled = isEnabled)
-                is AutomationAction.ShowMessage -> item.copy(isEnabled = isEnabled)
-            }
-            list[index] = updated
+            list[index] = list[index].withEnabled(isEnabled)
             _editingActions.value = list
         }
     }
@@ -387,7 +380,7 @@ class MainScreenViewModel(
         val list = _editingActions.value.toMutableList()
         if (index in list.indices) {
             list.removeAt(index)
-            _editingActions.value = list
+            _editingActions.value = list.mapIndexed { i, action -> action.withSortOrder(i) }
         }
     }
 

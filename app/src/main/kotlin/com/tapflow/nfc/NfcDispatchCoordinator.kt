@@ -1,8 +1,11 @@
 package com.tapflow.nfc
 
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.tapflow.MainActivity
 import com.tapflow.automation.ActionResult
 import com.tapflow.automation.AutomationAction
 import com.tapflow.automation.AutomationExecutor
@@ -103,7 +106,7 @@ class NfcDispatchCoordinator(
 
                 // Debounce check
                 val now = System.currentTimeMillis()
-                if (registeredTag.tagKey == lastTagKey && (now - lastExecutionTimeMs) < debounceWindowMs) {
+                if (registeredTag.tagKey.equals(lastTagKey, ignoreCase = true) && (now - lastExecutionTimeMs) < debounceWindowMs) {
                     _scanEvents.emit(ScanEvent.Debounced(registeredTag))
                     return@launch
                 }
@@ -189,15 +192,29 @@ class NfcDispatchCoordinator(
 
     private fun postUnknownTagNotification(tagData: TagData) {
         try {
+            val notificationManager = NotificationManagerCompat.from(context)
+            if (!notificationManager.areNotificationsEnabled()) return
+
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
             val notification = NotificationCompat.Builder(context, "tapflow_automations")
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle("New NFC Tag Detected")
-                .setContentText("Tap to register '${tagData.tagKey.take(12)}...' in TapFlow")
+                .setContentText("Tap to register '${tagData.rawUidHex}' in TapFlow")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .build()
 
-            NotificationManagerCompat.from(context).notify(999, notification)
+            notificationManager.notify(999, notification)
         } catch (_: Exception) {
             // Notifications may be denied or blocked
         }

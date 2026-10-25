@@ -136,6 +136,15 @@ private class FakeRegisteredTagDao : RegisteredTagDao {
         }
     }
 
+    override suspend fun clearAutomationReferences(automationId: Long) {
+        tags.forEach { (key, tag) ->
+            if (tag.automationId == automationId) {
+                tags[key] = tag.copy(automationId = null)
+            }
+        }
+        emitUpdate()
+    }
+
     override suspend fun updateEnabled(tagKey: String, isEnabled: Boolean) {
         tags[tagKey]?.let {
             tags[tagKey] = it.copy(isEnabled = isEnabled)

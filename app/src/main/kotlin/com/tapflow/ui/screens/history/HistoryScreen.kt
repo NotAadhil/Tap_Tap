@@ -234,7 +234,7 @@ private fun LogCard(log: ExecutionLogEntity) {
                                     Triple(
                                         item.optString("description", "Action"),
                                         item.optString("status", "SUCCESS"),
-                                        item.optString("error", null)
+                                        if (item.has("error")) item.optString("error") else null
                                     )
                                 )
                             }

@@ -34,7 +34,7 @@ class AutomationExecutor(
 
     suspend fun execute(tagKey: String, actions: List<AutomationAction>): List<ActionResult> {
         val now = System.currentTimeMillis()
-        if (tagKey.isNotEmpty() && tagKey == lastExecutedTagKey && (now - lastExecutedAt) < debounceMs) {
+        if (tagKey.isNotEmpty() && tagKey.equals(lastExecutedTagKey, ignoreCase = true) && (now - lastExecutedAt) < debounceMs) {
             return listOf(
                 ActionResult.Skipped(
                     actionId = 0,
@@ -92,6 +92,11 @@ class AutomationExecutor(
             }
 
             is AutomationAction.ShowNotification -> {
+                val notificationManager = NotificationManagerCompat.from(context)
+                if (!notificationManager.areNotificationsEnabled()) {
+                    throw IllegalStateException("Notifications are disabled for TapFlow in device Settings.")
+                }
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     val hasPermission = ContextCompat.checkSelfPermission(
                         context,

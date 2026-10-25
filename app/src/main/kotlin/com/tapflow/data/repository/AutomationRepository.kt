@@ -4,6 +4,7 @@ import com.tapflow.automation.ActionMapper
 import com.tapflow.automation.AutomationAction
 import com.tapflow.data.db.dao.ActionDao
 import com.tapflow.data.db.dao.AutomationDao
+import com.tapflow.data.db.dao.RegisteredTagDao
 import com.tapflow.data.db.entity.AutomationEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,7 +14,8 @@ import kotlinx.coroutines.flow.map
  */
 class AutomationRepository(
     private val automationDao: AutomationDao,
-    private val actionDao: ActionDao
+    private val actionDao: ActionDao,
+    private val tagDao: RegisteredTagDao? = null
 ) {
 
     fun getAllAutomationsFlow(): Flow<List<AutomationEntity>> {
@@ -49,11 +51,13 @@ class AutomationRepository(
         // Clear existing actions for this automation and replace with ordered list
         actionDao.deleteAllForAutomation(targetId)
         val entities = actions.mapIndexed { index, action ->
-            val domainWithUpdatedOrder = when (action) {
-                is AutomationAction.OpenApp -> action.copy(automationId = targetId, sortOrder = index)
-                is AutomationAction.OpenUrl -> action.copy(automationId = targetId, sortOrder = index)
-                is AutomationAction.ShowNotification -> action.copy(automationId = targetId, sortOrder = index)
-                is AutomationAction.ShowMessage -> action.copy(automationId = targetId, sortOrder = index)
+            val domainWithUpdatedOrder = action.withSortOrder(index).let {
+                when (it) {
+                    is AutomationAction.OpenApp -> it.copy(automationId = targetId)
+                    is AutomationAction.OpenUrl -> it.copy(automationId = targetId)
+                    is AutomationAction.ShowNotification -> it.copy(automationId = targetId)
+                    is AutomationAction.ShowMessage -> it.copy(automationId = targetId)
+                }
             }
             ActionMapper.toEntity(domainWithUpdatedOrder)
         }
@@ -67,6 +71,7 @@ class AutomationRepository(
     }
 
     suspend fun deleteAutomation(id: Long) {
+        tagDao?.clearAutomationReferences(id)
         actionDao.deleteAllForAutomation(id)
         automationDao.deleteById(id)
     }

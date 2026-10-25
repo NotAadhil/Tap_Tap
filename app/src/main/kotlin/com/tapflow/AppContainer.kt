@@ -25,7 +25,11 @@ class AppContainer(val context: Context) {
     }
 
     val automationRepository: AutomationRepository by lazy {
-        AutomationRepository(database.automationDao(), database.actionDao())
+        AutomationRepository(
+            automationDao = database.automationDao(),
+            actionDao = database.actionDao(),
+            tagDao = database.registeredTagDao()
+        )
     }
 
     val executionLogRepository: ExecutionLogRepository by lazy {

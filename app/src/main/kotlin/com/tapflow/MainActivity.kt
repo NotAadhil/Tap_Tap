@@ -31,8 +31,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Handle cold-start launch via NFC tag
-        handleNfcIntent(intent)
+        // Handle cold-start launch via NFC tag only on fresh launch (not configuration change/rotation)
+        if (savedInstanceState == null) {
+            handleNfcIntent(intent)
+        }
 
         setContent {
             TapFlowTheme {
@@ -86,7 +88,11 @@ class MainActivity : ComponentActivity() {
                 @Suppress("DEPRECATION")
                 intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
             }
-            tag?.let { container.nfcManager.handleTag(it) }
+            tag?.let {
+                container.nfcManager.handleTag(it)
+                // Consume the action to prevent re-processing on subsequent state restoration
+                intent.action = null
+            }
         }
     }
 }

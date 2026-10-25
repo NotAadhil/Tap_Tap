@@ -12,6 +12,20 @@ sealed interface AutomationAction {
     fun describe(): String
     fun validate(): String?
 
+    fun withSortOrder(newOrder: Int): AutomationAction = when (this) {
+        is OpenApp -> copy(sortOrder = newOrder)
+        is OpenUrl -> copy(sortOrder = newOrder)
+        is ShowNotification -> copy(sortOrder = newOrder)
+        is ShowMessage -> copy(sortOrder = newOrder)
+    }
+
+    fun withEnabled(enabled: Boolean): AutomationAction = when (this) {
+        is OpenApp -> copy(isEnabled = enabled)
+        is OpenUrl -> copy(isEnabled = enabled)
+        is ShowNotification -> copy(isEnabled = enabled)
+        is ShowMessage -> copy(isEnabled = enabled)
+    }
+
     data class OpenApp(
         override val id: Long = 0,
         override val automationId: Long = 0,

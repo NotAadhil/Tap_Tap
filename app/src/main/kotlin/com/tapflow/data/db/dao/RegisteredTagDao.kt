@@ -39,6 +39,9 @@ interface RegisteredTagDao {
     @Query("UPDATE registered_tags SET automationId = :automationId WHERE tagKey = :tagKey")
     suspend fun updateAutomationId(tagKey: String, automationId: Long?)
 
+    @Query("UPDATE registered_tags SET automationId = NULL WHERE automationId = :automationId")
+    suspend fun clearAutomationReferences(automationId: Long)
+
     @Query("UPDATE registered_tags SET isEnabled = :isEnabled WHERE tagKey = :tagKey")
     suspend fun updateEnabled(tagKey: String, isEnabled: Boolean)
 
