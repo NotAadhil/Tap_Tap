@@ -1,11 +1,14 @@
 package com.tapflow
 
 import android.Manifest
+import android.app.KeyguardManager
+import android.content.Context
 import android.content.Intent
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,6 +34,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Enable show when locked and turn screen on for NFC lockscreen triggers
+        setupLockscreenVisibility()
+
         // Handle cold-start launch via NFC tag only on fresh launch (not configuration change/rotation)
         if (savedInstanceState == null) {
             handleNfcIntent(intent)
@@ -54,6 +60,19 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    private fun setupLockscreenVisibility() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
         }
     }
 
@@ -82,6 +101,12 @@ class MainActivity : ComponentActivity() {
                 NfcAdapter.ACTION_TAG_DISCOVERED
             )
         ) {
+            // Dismiss keyguard if locked so the user can interact with launched apps
+            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+            if (keyguardManager?.isKeyguardLocked == true) {
+                keyguardManager.requestDismissKeyguard(this, null)
+            }
+
             val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
             } else {

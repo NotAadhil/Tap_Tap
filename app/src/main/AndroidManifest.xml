@@ -34,20 +34,38 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:inheritShowWhenLocked="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Manifest filter for NDEF tags -->
+            <!-- 1. Manifest filter for custom TapFlow NDEF tags -->
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/vnd.tapflow" />
             </intent-filter>
 
-            <!-- Manifest filter for raw hardware tech types (NfcA, NfcB, NfcF, NfcV, IsoDep) -->
+            <!-- 2. Catch-all NDEF MIME types (e.g. text/plain, etc.) -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+
+            <!-- 3. Web URL NDEF tags (http / https) -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+            </intent-filter>
+
+            <!-- 4. Raw Hardware Tech Discovered (NfcA, NfcB, Mifare, IsoDep, etc.) -->
             <intent-filter>
                 <action android:name="android.nfc.action.TECH_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -55,6 +73,12 @@
             <meta-data
                 android:name="android.nfc.action.TECH_DISCOVERED"
                 android:resource="@xml/nfc_tech_filter" />
+
+            <!-- 5. Fallback Tag Discovered for any unformatted / unknown tags -->
+            <intent-filter>
+                <action android:name="android.nfc.action.TAG_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
     </application>
 
