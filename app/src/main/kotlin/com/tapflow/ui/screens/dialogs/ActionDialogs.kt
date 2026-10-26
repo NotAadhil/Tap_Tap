@@ -3,6 +3,8 @@ package com.tapflow.ui.screens.dialogs
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +21,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -178,7 +182,15 @@ fun RegisterTagDialog(
                         onDismissRequest = { dropdownExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("⚡ Quick URL Action (Single)") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Language,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            text = { Text("Quick Web URL (Direct)") },
                             onClick = {
                                 selectedAutomationId = null
                                 dropdownExpanded = false
@@ -186,7 +198,15 @@ fun RegisterTagDialog(
                         )
                         automations.forEach { auto ->
                             DropdownMenuItem(
-                                text = { Text("⚙️ ${auto.name}") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AccountTree,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                text = { Text(auto.name) },
                                 onClick = {
                                     selectedAutomationId = auto.id
                                     dropdownExpanded = false
@@ -255,79 +275,135 @@ fun ActionPickerDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Select Action Type", fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Select Action Type", fontWeight = FontWeight.Bold)
+            }
         },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.Apps,
-                    title = "Open Application",
-                    subtitle = "Launch any installed Android application",
-                    onClick = { onSelectType("OPEN_APP") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.Language,
-                    title = "Open Web URL",
-                    subtitle = "Open a website in the default browser",
-                    onClick = { onSelectType("OPEN_URL") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.FlashlightOn,
-                    title = "Toggle Flashlight",
-                    subtitle = "Turn camera torch light ON or OFF",
-                    onClick = { onSelectType("TOGGLE_FLASHLIGHT") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.ContentCopy,
-                    title = "Copy to Clipboard",
-                    subtitle = "Copy text or Wi-Fi password to clipboard",
-                    onClick = { onSelectType("COPY_TO_CLIPBOARD") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.Notifications,
-                    title = "Show Notification",
-                    subtitle = "Display a system notification in the tray",
-                    onClick = { onSelectType("SHOW_NOTIFICATION") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.VolumeUp,
-                    title = "Play Sound",
-                    subtitle = "Play a confirmation audio beep tone",
-                    onClick = { onSelectType("PLAY_SOUND") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.ChatBubbleOutline,
-                    title = "Show Message",
-                    subtitle = "Display a brief in-app confirmation message",
-                    onClick = { onSelectType("SHOW_MESSAGE") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.Settings,
-                    title = "Device Settings",
-                    subtitle = "Open Wi-Fi, Bluetooth, NFC, Sound or Battery settings",
-                    onClick = { onSelectType("OPEN_SETTINGS") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.NotificationsActive,
-                    title = "Set Ringer Mode",
-                    subtitle = "Switch audio to Silent, Vibrate, or Normal",
-                    onClick = { onSelectType("SET_RINGER") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.ChatBubbleOutline,
-                    title = "Compose SMS",
-                    subtitle = "Pre-fill text message to a contact",
-                    onClick = { onSelectType("COMPOSE_SMS") }
-                )
-                ActionTypeOptionCard(
-                    icon = Icons.Outlined.HourglassEmpty,
-                    title = "Wait / Delay",
-                    subtitle = "Pause execution for a few seconds between actions",
-                    onClick = { onSelectType("DELAY") }
-                )
+                item {
+                    ActionCategoryHeader("Apps & Web")
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.Apps,
+                        title = "Open Application",
+                        subtitle = "Launch any installed Android application",
+                        onClick = { onSelectType("OPEN_APP") }
+                    )
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.Language,
+                        title = "Open Web URL",
+                        subtitle = "Open a website in the default browser",
+                        onClick = { onSelectType("OPEN_URL") }
+                    )
+                }
+
+                item {
+                    ActionCategoryHeader("Device Hardware & Settings")
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.FlashlightOn,
+                        title = "Toggle Flashlight",
+                        subtitle = "Turn camera torch light ON or OFF",
+                        onClick = { onSelectType("TOGGLE_FLASHLIGHT") }
+                    )
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.Settings,
+                        title = "Device Settings",
+                        subtitle = "Open Wi-Fi, Bluetooth, NFC, Sound or Battery",
+                        onClick = { onSelectType("OPEN_SETTINGS") }
+                    )
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.NotificationsActive,
+                        title = "Set Ringer Mode",
+                        subtitle = "Switch audio to Silent, Vibrate, or Normal",
+                        onClick = { onSelectType("SET_RINGER") }
+                    )
+                }
+
+                item {
+                    ActionCategoryHeader("Data & Timing")
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.ContentCopy,
+                        title = "Copy to Clipboard",
+                        subtitle = "Copy text or Wi-Fi password to clipboard",
+                        onClick = { onSelectType("COPY_TO_CLIPBOARD") }
+                    )
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.ChatBubbleOutline,
+                        title = "Compose SMS",
+                        subtitle = "Pre-fill text message to a contact",
+                        onClick = { onSelectType("COMPOSE_SMS") }
+                    )
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.HourglassEmpty,
+                        title = "Wait / Delay",
+                        subtitle = "Pause execution for a few seconds between actions",
+                        onClick = { onSelectType("DELAY") }
+                    )
+                }
+
+                item {
+                    ActionCategoryHeader("Notifications & Feedback")
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.Notifications,
+                        title = "Show Notification",
+                        subtitle = "Display a system notification in the tray",
+                        onClick = { onSelectType("SHOW_NOTIFICATION") }
+                    )
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.VolumeUp,
+                        title = "Play Sound",
+                        subtitle = "Play a confirmation audio beep tone",
+                        onClick = { onSelectType("PLAY_SOUND") }
+                    )
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.ChatBubbleOutline,
+                        title = "Show Message",
+                        subtitle = "Display a brief in-app confirmation message",
+                        onClick = { onSelectType("SHOW_MESSAGE") }
+                    )
+                }
             }
         },
         confirmButton = {},
@@ -336,6 +412,18 @@ fun ActionPickerDialog(
                 Text("Cancel")
             }
         }
+    )
+}
+
+@Composable
+private fun ActionCategoryHeader(title: String) {
+    Text(
+        text = title.uppercase(),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.5.sp,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
     )
 }
 
@@ -509,82 +597,87 @@ fun ActionConfigDialog(
             )
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                when (actionType) {
-                    "OPEN_APP" -> {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            label = { Text("Search Installed Apps") },
-                            placeholder = { Text("Type app name...") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+            if (actionType == "OPEN_APP") {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text("Search Installed Apps") },
+                        placeholder = { Text("Type app name...") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        val filtered = installedApps.filter {
-                            it.appName.contains(searchQuery, ignoreCase = true) ||
-                            it.packageName.contains(searchQuery, ignoreCase = true)
-                        }
+                    val filtered = installedApps.filter {
+                        it.appName.contains(searchQuery, ignoreCase = true) ||
+                        it.packageName.contains(searchQuery, ignoreCase = true)
+                    }
 
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 240.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            items(filtered, key = { it.packageName }) { app ->
-                                val isSelected = selectedApp?.packageName == app.packageName
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { selectedApp = app },
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.surface
-                                    ),
-                                    shape = RoundedCornerShape(8.dp)
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(filtered, key = { it.packageName }) { app ->
+                            val isSelected = selectedApp?.packageName == app.packageName
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedApp = app },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surface
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(10.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isSelected) Icons.Outlined.Check else Icons.Outlined.Apps,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp),
-                                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    Icon(
+                                        imageVector = if (isSelected) Icons.Outlined.Check else Icons.Outlined.Apps,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(app.appName, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                                        Text(
+                                            app.packageName,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text(app.appName, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                                            Text(
-                                                app.packageName,
-                                                fontSize = 11.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
                                     }
                                 }
                             }
                         }
                     }
-
-                    "OPEN_URL" -> {
-                        OutlinedTextField(
-                            value = url,
-                            onValueChange = {
-                                url = it
-                                errorMessage = null
-                            },
-                            label = { Text("Destination URL") },
-                            placeholder = { Text("https://example.com") },
-                            isError = errorMessage != null,
-                            supportingText = errorMessage?.let { { Text(it) } },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    when (actionType) {
+                        "OPEN_URL" -> {
+                            OutlinedTextField(
+                                value = url,
+                                onValueChange = {
+                                    url = it
+                                    errorMessage = null
+                                },
+                                label = { Text("Destination URL") },
+                                placeholder = { Text("https://example.com") },
+                                isError = errorMessage != null,
+                                supportingText = errorMessage?.let { { Text(it) } },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
 
                     "SHOW_NOTIFICATION" -> {
                         OutlinedTextField(
@@ -797,8 +890,9 @@ fun ActionConfigDialog(
                     }
                 }
             }
-        },
-        confirmButton = {
+        }
+    },
+    confirmButton = {
             Button(
                 onClick = {
                     when (actionType) {

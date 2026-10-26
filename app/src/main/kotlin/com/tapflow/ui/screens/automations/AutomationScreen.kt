@@ -283,12 +283,17 @@ fun AutomationBuilderDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    shape = CircleShape,
+                    shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text("⚙️", fontSize = 18.sp)
+                        Icon(
+                            imageVector = Icons.Outlined.AccountTree,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.width(10.dp))
@@ -362,114 +367,141 @@ fun AutomationBuilderDialog(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 260.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .heightIn(max = 340.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         itemsIndexed(actions) { index, action ->
+                            val icon = when (action) {
+                                is AutomationAction.OpenApp -> Icons.Outlined.Apps
+                                is AutomationAction.OpenUrl -> Icons.Outlined.Language
+                                is AutomationAction.ToggleFlashlight -> Icons.Outlined.FlashlightOn
+                                is AutomationAction.CopyToClipboard -> Icons.Outlined.ContentCopy
+                                is AutomationAction.ShowNotification -> Icons.Outlined.Notifications
+                                is AutomationAction.PlaySound -> Icons.Outlined.VolumeUp
+                                is AutomationAction.ShowMessage -> Icons.Outlined.ChatBubbleOutline
+                                is AutomationAction.OpenSettings -> Icons.Outlined.Settings
+                                is AutomationAction.SetRingerMode -> Icons.Outlined.NotificationsActive
+                                is AutomationAction.ComposeSms -> Icons.Outlined.ChatBubbleOutline
+                                is AutomationAction.DelayAction -> Icons.Outlined.HourglassEmpty
+                            }
+
                             Card(
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (action.isEnabled) MaterialTheme.colorScheme.surface
-                                    else MaterialTheme.colorScheme.surfaceVariant
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                                 ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp)
                                 ) {
-                                    Text(
-                                        text = "${index + 1}.",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.width(20.dp)
-                                    )
-
-                                    val icon = when (action) {
-                                        is AutomationAction.OpenApp -> Icons.Outlined.Apps
-                                        is AutomationAction.OpenUrl -> Icons.Outlined.Language
-                                        is AutomationAction.ToggleFlashlight -> Icons.Outlined.FlashlightOn
-                                        is AutomationAction.CopyToClipboard -> Icons.Outlined.ContentCopy
-                                        is AutomationAction.ShowNotification -> Icons.Outlined.Notifications
-                                        is AutomationAction.PlaySound -> Icons.Outlined.VolumeUp
-                                        is AutomationAction.ShowMessage -> Icons.Outlined.ChatBubbleOutline
-                                        is AutomationAction.OpenSettings -> Icons.Outlined.Settings
-                                        is AutomationAction.SetRingerMode -> Icons.Outlined.NotificationsActive
-                                        is AutomationAction.ComposeSms -> Icons.Outlined.ChatBubbleOutline
-                                        is AutomationAction.DelayAction -> Icons.Outlined.HourglassEmpty
-                                    }
-
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(28.dp)
+                                    // Top Row: Step badge, icon, description, switch
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onEditAction(action) },
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = icon,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(16.dp)
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        ) {
+                                            Text(
+                                                text = "#${index + 1}",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
 
-                                    Column(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { onEditAction(action) }
-                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = icon,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
                                         Text(
                                             text = action.describe(),
                                             fontWeight = FontWeight.Medium,
-                                            fontSize = 13.sp
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.weight(1f)
+                                        )
+
+                                        Switch(
+                                            checked = action.isEnabled,
+                                            onCheckedChange = { onToggleAction(index, it) }
                                         )
                                     }
 
-                                    // Up/Down reordering controls
-                                    if (index > 0) {
-                                        IconButton(
-                                            onClick = { onMoveUp(index) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.KeyboardArrowUp,
-                                                contentDescription = "Move Up",
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                    if (index < actions.size - 1) {
-                                        IconButton(
-                                            onClick = { onMoveDown(index) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.KeyboardArrowDown,
-                                                contentDescription = "Move Down",
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-
-                                    Switch(
-                                        checked = action.isEnabled,
-                                        onCheckedChange = { onToggleAction(index, it) },
-                                        modifier = Modifier.padding(start = 4.dp)
-                                    )
-
-                                    IconButton(
-                                        onClick = { onRemoveAction(index) },
-                                        modifier = Modifier.size(28.dp)
+                                    // Bottom Control Strip: Edit label + Reorder controls + Delete button
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Close,
-                                            contentDescription = "Remove Action",
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                                        TextButton(
+                                            onClick = { onEditAction(action) },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("Edit Parameters", fontSize = 11.sp)
+                                        }
+
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (index > 0) {
+                                                IconButton(
+                                                    onClick = { onMoveUp(index) },
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.KeyboardArrowUp,
+                                                        contentDescription = "Move Up",
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+                                            if (index < actions.size - 1) {
+                                                IconButton(
+                                                    onClick = { onMoveDown(index) },
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.KeyboardArrowDown,
+                                                        contentDescription = "Move Down",
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+                                            IconButton(
+                                                onClick = { onRemoveAction(index) },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.DeleteOutline,
+                                                    contentDescription = "Remove Action",
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -483,7 +515,15 @@ fun AutomationBuilderDialog(
                         onClick = onTestRun,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("▶ Test Automation Now")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.Bolt,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Test Automation Sequence", fontSize = 13.sp)
+                        }
                     }
                 }
             }

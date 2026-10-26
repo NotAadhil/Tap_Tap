@@ -287,12 +287,17 @@ fun TagDetailDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    shape = CircleShape,
+                    shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text("🏷️", fontSize = 18.sp)
+                        Icon(
+                            imageVector = Icons.Outlined.Nfc,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.width(10.dp))
@@ -334,6 +339,14 @@ fun TagDetailDialog(
                         onDismissRequest = { dropdownExpanded = false }
                     ) {
                         DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Pause,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
                             text = { Text("None (Unassigned)") },
                             onClick = {
                                 onAssignAutomation(null)
@@ -342,7 +355,15 @@ fun TagDetailDialog(
                         )
                         automations.forEach { auto ->
                             DropdownMenuItem(
-                                text = { Text("⚙️ ${auto.name}") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AccountTree,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                text = { Text(auto.name) },
                                 onClick = {
                                     onAssignAutomation(auto.id)
                                     dropdownExpanded = false
