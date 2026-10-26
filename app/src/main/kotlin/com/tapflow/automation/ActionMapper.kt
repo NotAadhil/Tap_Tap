@@ -19,6 +19,9 @@ object ActionMapper {
     const val TYPE_SET_RINGER = "SET_RINGER"
     const val TYPE_COMPOSE_SMS = "COMPOSE_SMS"
     const val TYPE_DELAY = "DELAY"
+    const val TYPE_SEND_WEBHOOK = "SEND_WEBHOOK"
+    const val TYPE_TIME_WINDOW = "TIME_WINDOW"
+    const val TYPE_SET_DND = "SET_DND"
 
     fun toDomain(entity: ActionEntity): AutomationAction {
         val json = try {
@@ -63,7 +66,8 @@ object ActionMapper {
                 automationId = entity.automationId,
                 sortOrder = entity.sortOrder,
                 isEnabled = entity.isEnabled,
-                enable = json.optBoolean("enable", true)
+                enable = json.optBoolean("enable", true),
+                mode = json.optString("mode", if (json.optBoolean("enable", true)) "ON" else "OFF")
             )
             TYPE_COPY_TO_CLIPBOARD -> AutomationAction.CopyToClipboard(
                 id = entity.id,
@@ -109,6 +113,32 @@ object ActionMapper {
                 isEnabled = entity.isEnabled,
                 durationMs = json.optLong("durationMs", 1000L)
             )
+            TYPE_SEND_WEBHOOK -> AutomationAction.SendWebhook(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                url = json.optString("url", ""),
+                method = json.optString("method", "GET"),
+                body = json.optString("body", "")
+            )
+            TYPE_TIME_WINDOW -> AutomationAction.TimeWindowFilter(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                startHour = json.optInt("startHour", 9),
+                startMinute = json.optInt("startMinute", 0),
+                endHour = json.optInt("endHour", 17),
+                endMinute = json.optInt("endMinute", 0)
+            )
+            TYPE_SET_DND -> AutomationAction.SetDndMode(
+                id = entity.id,
+                automationId = entity.automationId,
+                sortOrder = entity.sortOrder,
+                isEnabled = entity.isEnabled,
+                dndMode = json.optString("dndMode", "PRIORITY")
+            )
             else -> AutomationAction.ShowMessage(
                 id = entity.id,
                 automationId = entity.automationId,
@@ -142,6 +172,7 @@ object ActionMapper {
             }
             is AutomationAction.ToggleFlashlight -> {
                 json.put("enable", domain.enable)
+                json.put("mode", domain.mode)
                 TYPE_TOGGLE_FLASHLIGHT
             }
             is AutomationAction.CopyToClipboard -> {
@@ -169,6 +200,23 @@ object ActionMapper {
             is AutomationAction.DelayAction -> {
                 json.put("durationMs", domain.durationMs)
                 TYPE_DELAY
+            }
+            is AutomationAction.SendWebhook -> {
+                json.put("url", domain.url)
+                json.put("method", domain.method)
+                json.put("body", domain.body)
+                TYPE_SEND_WEBHOOK
+            }
+            is AutomationAction.TimeWindowFilter -> {
+                json.put("startHour", domain.startHour)
+                json.put("startMinute", domain.startMinute)
+                json.put("endHour", domain.endHour)
+                json.put("endMinute", domain.endMinute)
+                TYPE_TIME_WINDOW
+            }
+            is AutomationAction.SetDndMode -> {
+                json.put("dndMode", domain.dndMode)
+                TYPE_SET_DND
             }
         }
 

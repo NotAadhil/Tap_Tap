@@ -53,6 +53,7 @@ import com.tapflow.ui.screens.dialogs.ActionConfigDialog
 import com.tapflow.ui.screens.dialogs.ActionPickerDialog
 import com.tapflow.ui.screens.dialogs.RegisterTagDialog
 import com.tapflow.ui.screens.dialogs.SimulateTagDialog
+import com.tapflow.ui.screens.dialogs.TagToolsDialog
 import com.tapflow.ui.screens.dialogs.VirtualNfcConfigDialog
 import com.tapflow.ui.screens.history.HistoryScreenContent
 import com.tapflow.ui.screens.home.HomeScreenContent
@@ -115,7 +116,15 @@ fun MainScreen(
         onToggleHce = { viewModel.toggleHceEmitting(it) },
         onOpenHceConfig = { viewModel.openHceConfigDialog() },
         onCloseHceConfig = { viewModel.closeHceConfigDialog() },
-        onSaveHceConfig = { type, content -> viewModel.updateHcePayload(type, content) }
+        onSaveHceConfig = { type, content -> viewModel.updateHcePayload(type, content) },
+        onOpenTagTools = { viewModel.openTagTools(it) },
+        onCloseTagTools = { viewModel.closeTagTools() },
+        onSelectTagToolsTab = { viewModel.setTagToolsTab(it) },
+        onStartTagWrite = { viewModel.startTagWrite(it) },
+        onStartCloneRead = { viewModel.startTagCloneRead() },
+        onStartCloneWrite = { viewModel.startTagCloneWrite() },
+        onStartLockTag = { viewModel.startTagLock() },
+        onCancelTagOperation = { viewModel.cancelTagOperation() }
     )
 }
 
@@ -165,7 +174,15 @@ fun MainScreenContent(
     onToggleHce: (Boolean) -> Unit = {},
     onOpenHceConfig: () -> Unit = {},
     onCloseHceConfig: () -> Unit = {},
-    onSaveHceConfig: (String, String) -> Unit = { _, _ -> }
+    onSaveHceConfig: (String, String) -> Unit = { _, _ -> },
+    onOpenTagTools: (Int) -> Unit = {},
+    onCloseTagTools: () -> Unit = {},
+    onSelectTagToolsTab: (Int) -> Unit = {},
+    onStartTagWrite: (android.nfc.NdefMessage) -> Unit = {},
+    onStartCloneRead: () -> Unit = {},
+    onStartCloneWrite: () -> Unit = {},
+    onStartLockTag: () -> Unit = {},
+    onCancelTagOperation: () -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -300,7 +317,8 @@ fun MainScreenContent(
                         onSelectTag = onSelectTagForDetail,
                         onToggleEnabled = onToggleTagEnabled,
                         onDeleteTag = onDeleteTag,
-                        onTestTag = onTestTag
+                        onTestTag = onTestTag,
+                        onOpenTagTools = onOpenTagTools
                     )
                 }
                 AppTab.AUTOMATIONS -> {
@@ -416,6 +434,25 @@ fun MainScreenContent(
             currentContent = state.hcePayloadContent,
             onDismiss = onCloseHceConfig,
             onSave = onSaveHceConfig
+        )
+    }
+
+    // Modal: Tag Tools (Write, Clone, Lock) Dialog
+    if (state.tagTools.isOpen) {
+        TagToolsDialog(
+            selectedTab = state.tagTools.selectedTab,
+            isWaitingForTag = state.tagTools.isWaitingForTag,
+            isSuccess = state.tagTools.isSuccess,
+            statusMessage = state.tagTools.statusMessage,
+            clonedPayload = state.tagTools.clonedPayload,
+            installedApps = state.installedApps,
+            onSelectTab = onSelectTagToolsTab,
+            onStartWrite = onStartTagWrite,
+            onStartCloneRead = onStartCloneRead,
+            onStartCloneWrite = onStartCloneWrite,
+            onStartLock = onStartLockTag,
+            onCancelOperation = onCancelTagOperation,
+            onDismiss = onCloseTagTools
         )
     }
 }

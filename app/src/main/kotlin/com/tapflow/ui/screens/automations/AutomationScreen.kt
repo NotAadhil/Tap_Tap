@@ -28,13 +28,16 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.DoNotDisturbOn
 import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.Http
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
@@ -383,6 +386,9 @@ fun AutomationBuilderDialog(
                                 is AutomationAction.SetRingerMode -> Icons.Outlined.NotificationsActive
                                 is AutomationAction.ComposeSms -> Icons.Outlined.ChatBubbleOutline
                                 is AutomationAction.DelayAction -> Icons.Outlined.HourglassEmpty
+                                is AutomationAction.SendWebhook -> Icons.Outlined.Http
+                                is AutomationAction.TimeWindowFilter -> Icons.Outlined.Schedule
+                                is AutomationAction.SetDndMode -> Icons.Outlined.DoNotDisturbOn
                             }
 
                             Card(

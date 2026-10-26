@@ -21,12 +21,23 @@ import com.tapflow.nfc.NfcDispatchCoordinator
 import com.tapflow.nfc.NfcManager
 import com.tapflow.nfc.ScanEvent
 import com.tapflow.nfc.model.TagData
+import com.tapflow.nfc.writer.TagWriteResult
+import android.nfc.NdefMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+data class TagToolsState(
+    val isOpen: Boolean = false,
+    val selectedTab: Int = 0,
+    val statusMessage: String? = null,
+    val isWaitingForTag: Boolean = false,
+    val isSuccess: Boolean = false,
+    val clonedPayload: NdefMessage? = null
+)
 
 data class MainUiState(
     val currentTab: AppTab = AppTab.HOME,
@@ -53,7 +64,8 @@ data class MainUiState(
     val isHceEmittingEnabled: Boolean = false,
     val hcePayloadType: String = "URL",
     val hcePayloadContent: String = "https://github.com/NotAadhil/Tap_Tap",
-    val showHceConfigDialog: Boolean = false
+    val showHceConfigDialog: Boolean = false,
+    val tagTools: TagToolsState = TagToolsState()
 )
 
 class MainScreenViewModel(
@@ -100,6 +112,7 @@ class MainScreenViewModel(
         preferences.getString("hce_payload_content", "https://github.com/NotAadhil/Tap_Tap") ?: "https://github.com/NotAadhil/Tap_Tap"
     )
     private val _showHceConfigDialog = MutableStateFlow(false)
+    private val _tagToolsState = MutableStateFlow(TagToolsState())
 
     val uiState: StateFlow<MainUiState> = combine(
         combine(
@@ -141,11 +154,12 @@ class MainScreenViewModel(
             _isHceEmittingEnabled,
             _hcePayloadType,
             _hcePayloadContent,
-            _showHceConfigDialog
-        ) { hceEnabled, hceType, hceContent, showHce ->
-            Tuple4(hceEnabled, hceType, hceContent, showHce)
+            _showHceConfigDialog,
+            _tagToolsState
+        ) { hceEnabled, hceType, hceContent, showHce, tagTools ->
+            Tuple5(hceEnabled, hceType, hceContent, showHce, tagTools)
         }
-    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err, haptic, cooldown), (hceEnabled, hceType, hceContent, showHce) ->
+    ) { (tab, tags, autos, logs), (scan, pending, detail, editAuto, actions), (showBuilder, showPicker, showConfig, actionType, actionEdit), (apps, msg, err, haptic, cooldown), (hceEnabled, hceType, hceContent, showHce, tagTools) ->
         MainUiState(
             currentTab = tab,
             isNfcAvailable = nfcManager.isNfcAvailable,
@@ -171,7 +185,8 @@ class MainScreenViewModel(
             isHceEmittingEnabled = hceEnabled,
             hcePayloadType = hceType,
             hcePayloadContent = hceContent,
-            showHceConfigDialog = showHce
+            showHceConfigDialog = showHce,
+            tagTools = tagTools
         )
     }.stateIn(
         viewModelScope,
@@ -377,6 +392,9 @@ class MainScreenViewModel(
             is AutomationAction.SetRingerMode -> "SET_RINGER"
             is AutomationAction.ComposeSms -> "COMPOSE_SMS"
             is AutomationAction.DelayAction -> "DELAY"
+            is AutomationAction.SendWebhook -> "SEND_WEBHOOK"
+            is AutomationAction.TimeWindowFilter -> "TIME_WINDOW"
+            is AutomationAction.SetDndMode -> "SET_DND"
         }
         _showActionConfig.value = true
     }
@@ -619,6 +637,127 @@ class MainScreenViewModel(
     fun clearMessages() {
         _userMessage.value = null
         _errorMessage.value = null
+    }
+
+    fun openTagTools(tab: Int = 0) {
+        _tagToolsState.value = TagToolsState(isOpen = true, selectedTab = tab)
+    }
+
+    fun closeTagTools() {
+        nfcManager.setWriteSession(null)
+        _tagToolsState.value = TagToolsState(isOpen = false)
+    }
+
+    fun setTagToolsTab(tab: Int) {
+        nfcManager.setWriteSession(null)
+        _tagToolsState.value = _tagToolsState.value.copy(
+            selectedTab = tab,
+            statusMessage = null,
+            isWaitingForTag = false,
+            isSuccess = false
+        )
+    }
+
+    fun startTagWrite(message: NdefMessage) {
+        _tagToolsState.value = _tagToolsState.value.copy(
+            isWaitingForTag = true,
+            statusMessage = "Hold blank NFC tag near phone...",
+            isSuccess = false
+        )
+        nfcManager.setWriteSession(
+            NfcManager.WriteSession.WritePayload(message) { result ->
+                viewModelScope.launch {
+                    when (result) {
+                        is TagWriteResult.Success -> {
+                            _tagToolsState.value = _tagToolsState.value.copy(
+                                isWaitingForTag = false,
+                                isSuccess = true,
+                                statusMessage = "Success! Tag written successfully."
+                            )
+                        }
+                        is TagWriteResult.Error -> {
+                            _tagToolsState.value = _tagToolsState.value.copy(
+                                isWaitingForTag = false,
+                                isSuccess = false,
+                                statusMessage = "Write Error: ${result.message}"
+                            )
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    fun startTagCloneRead() {
+        _tagToolsState.value = _tagToolsState.value.copy(
+            isWaitingForTag = true,
+            statusMessage = "Step 1: Tap original tag to read...",
+            isSuccess = false,
+            clonedPayload = null
+        )
+        nfcManager.setWriteSession(
+            NfcManager.WriteSession.CloneRead { message ->
+                viewModelScope.launch {
+                    if (message != null) {
+                        _tagToolsState.value = _tagToolsState.value.copy(
+                            isWaitingForTag = false,
+                            isSuccess = true,
+                            clonedPayload = message,
+                            statusMessage = "Payload captured (${message.toByteArray().size} bytes)! Now tap blank tag to write."
+                        )
+                    } else {
+                        _tagToolsState.value = _tagToolsState.value.copy(
+                            isWaitingForTag = false,
+                            isSuccess = false,
+                            statusMessage = "Could not read NDEF data from source tag."
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    fun startTagCloneWrite() {
+        val payload = _tagToolsState.value.clonedPayload ?: return
+        startTagWrite(payload)
+    }
+
+    fun startTagLock() {
+        _tagToolsState.value = _tagToolsState.value.copy(
+            isWaitingForTag = true,
+            statusMessage = "Hold NFC tag near phone to lock permanently...",
+            isSuccess = false
+        )
+        nfcManager.setWriteSession(
+            NfcManager.WriteSession.LockTag { result ->
+                viewModelScope.launch {
+                    when (result) {
+                        is TagWriteResult.Success -> {
+                            _tagToolsState.value = _tagToolsState.value.copy(
+                                isWaitingForTag = false,
+                                isSuccess = true,
+                                statusMessage = "Success! Tag is permanently locked (Read-Only)."
+                            )
+                        }
+                        is TagWriteResult.Error -> {
+                            _tagToolsState.value = _tagToolsState.value.copy(
+                                isWaitingForTag = false,
+                                isSuccess = false,
+                                statusMessage = "Lock Error: ${result.message}"
+                            )
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    fun cancelTagOperation() {
+        nfcManager.setWriteSession(null)
+        _tagToolsState.value = _tagToolsState.value.copy(
+            isWaitingForTag = false,
+            statusMessage = "Operation cancelled."
+        )
     }
 
     class Factory(private val container: AppContainer) : ViewModelProvider.Factory {

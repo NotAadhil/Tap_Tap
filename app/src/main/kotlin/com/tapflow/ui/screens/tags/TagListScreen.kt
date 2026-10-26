@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Pause
@@ -33,6 +34,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -63,7 +65,8 @@ fun TagListScreenContent(
     onSelectTag: (RegisteredTagEntity) -> Unit,
     onToggleEnabled: (tagKey: String, isEnabled: Boolean) -> Unit,
     onDeleteTag: (RegisteredTagEntity) -> Unit,
-    onTestTag: (RegisteredTagEntity) -> Unit = {}
+    onTestTag: (RegisteredTagEntity) -> Unit = {},
+    onOpenTagTools: (Int) -> Unit = {}
 ) {
     var tagToDelete by remember { mutableStateOf<RegisteredTagEntity?>(null) }
 
@@ -84,6 +87,20 @@ fun TagListScreenContent(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
+
+            FilledTonalButton(
+                onClick = { onOpenTagTools(0) },
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Tag Tools (Write/Clone)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))

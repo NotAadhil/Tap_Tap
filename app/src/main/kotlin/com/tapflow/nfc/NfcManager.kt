@@ -2,18 +2,38 @@ package com.tapflow.nfc
 
 import android.app.Activity
 import android.content.Context
+import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import com.tapflow.nfc.model.TagData
+import com.tapflow.nfc.writer.NfcTagWriter
+import com.tapflow.nfc.writer.TagWriteResult
 
 /**
  * Manages the Android [NfcAdapter] lifecycle and tag dispatch.
  * Utilizes [NfcAdapter.enableReaderMode] for high-priority, zero-chooser foreground tag discovery.
+ * Supports intercepting tag discovery for writing, formatting, cloning, and locking tags.
  */
 class NfcManager(
     context: Context,
     private val coordinator: NfcDispatchCoordinator
 ) : NfcAdapter.ReaderCallback {
+
+    sealed interface WriteSession {
+        data class WritePayload(val message: NdefMessage, val onResult: (TagWriteResult) -> Unit) : WriteSession
+        data class CloneRead(val onMessageRead: (NdefMessage?) -> Unit) : WriteSession
+        data class LockTag(val onResult: (TagWriteResult) -> Unit) : WriteSession
+    }
+
+    @Volatile
+    private var activeWriteSession: WriteSession? = null
+
+    fun setWriteSession(session: WriteSession?) {
+        activeWriteSession = session
+    }
+
+    val hasActiveWriteSession: Boolean
+        get() = activeWriteSession != null
 
     private val adapter: NfcAdapter? = NfcAdapter.getDefaultAdapter(context.applicationContext)
 
@@ -51,6 +71,29 @@ class NfcManager(
      * during active ReaderMode.
      */
     override fun onTagDiscovered(tag: Tag?) {
+        if (tag == null) return
+        val currentSession = activeWriteSession
+        if (currentSession != null) {
+            when (currentSession) {
+                is WriteSession.WritePayload -> {
+                    val result = NfcTagWriter.writeMessage(tag, currentSession.message)
+                    activeWriteSession = null
+                    currentSession.onResult(result)
+                }
+                is WriteSession.CloneRead -> {
+                    val message = NfcTagWriter.readMessage(tag)
+                    activeWriteSession = null
+                    currentSession.onMessageRead(message)
+                }
+                is WriteSession.LockTag -> {
+                    val result = NfcTagWriter.makeReadOnly(tag)
+                    activeWriteSession = null
+                    currentSession.onResult(result)
+                }
+            }
+            return
+        }
+
         val tagData = NfcTagReader.readTag(tag) ?: return
         coordinator.onTagDetected(tagData)
     }
@@ -60,6 +103,28 @@ class NfcManager(
      * or onNewIntent).
      */
     fun handleTag(tag: Tag, onHandled: ((ScanEvent) -> Unit)? = null) {
+        val currentSession = activeWriteSession
+        if (currentSession != null) {
+            when (currentSession) {
+                is WriteSession.WritePayload -> {
+                    val result = NfcTagWriter.writeMessage(tag, currentSession.message)
+                    activeWriteSession = null
+                    currentSession.onResult(result)
+                }
+                is WriteSession.CloneRead -> {
+                    val message = NfcTagWriter.readMessage(tag)
+                    activeWriteSession = null
+                    currentSession.onMessageRead(message)
+                }
+                is WriteSession.LockTag -> {
+                    val result = NfcTagWriter.makeReadOnly(tag)
+                    activeWriteSession = null
+                    currentSession.onResult(result)
+                }
+            }
+            return
+        }
+
         val tagData = NfcTagReader.readTag(tag) ?: return
         coordinator.onTagDetected(tagData, onHandled)
     }

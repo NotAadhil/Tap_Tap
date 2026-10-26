@@ -17,9 +17,15 @@ import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
+import java.nio.charset.StandardCharsets
+import java.util.Calendar
 
 /**
  * Executes a sequence of [AutomationAction]s sequentially, recording results,
@@ -37,6 +43,7 @@ class AutomationExecutor(
 
     private var lastExecutedTagKey: String = ""
     private var lastExecutedAt: Long = 0L
+    private var isTorchOn: Boolean = false
 
     suspend fun execute(tagKey: String, actions: List<AutomationAction>): List<ActionResult> {
         val now = System.currentTimeMillis()
@@ -178,8 +185,14 @@ class AutomationExecutor(
                     val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
                     val cameraId = cameraManager?.cameraIdList?.firstOrNull()
                         ?: throw IllegalStateException("Torch hardware not available on this device.")
-                    cameraManager.setTorchMode(cameraId, action.enable)
-                    _messageEvents.tryEmit(if (action.enable) "Flashlight turned ON" else "Flashlight turned OFF")
+                    val shouldTurnOn = when (action.mode) {
+                        "ON" -> true
+                        "OFF" -> false
+                        else -> !isTorchOn
+                    }
+                    cameraManager.setTorchMode(cameraId, shouldTurnOn)
+                    isTorchOn = shouldTurnOn
+                    _messageEvents.tryEmit(if (shouldTurnOn) "Flashlight turned ON" else "Flashlight turned OFF")
                 } catch (e: Exception) {
                     throw IllegalStateException("Failed to toggle flashlight: ${e.message}")
                 }
@@ -213,6 +226,7 @@ class AutomationExecutor(
                     "SOUND" -> Intent(android.provider.Settings.ACTION_SOUND_SETTINGS)
                     "DISPLAY" -> Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)
                     "BATTERY" -> Intent(android.provider.Settings.ACTION_BATTERY_SAVER_SETTINGS)
+                    "TETHERING" -> Intent("android.settings.TETHER_SETTINGS")
                     else -> Intent(android.provider.Settings.ACTION_SETTINGS)
                 }.apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -245,6 +259,75 @@ class AutomationExecutor(
 
             is AutomationAction.DelayAction -> {
                 kotlinx.coroutines.delay(action.durationMs)
+            }
+
+            is AutomationAction.SendWebhook -> {
+                withContext(Dispatchers.IO) {
+                    val url = URL(action.url)
+                    val conn = url.openConnection() as HttpURLConnection
+                    try {
+                        conn.connectTimeout = 6000
+                        conn.readTimeout = 6000
+                        conn.requestMethod = action.method.uppercase()
+                        conn.setRequestProperty("User-Agent", "TapFlow/1.0 (Android)")
+                        if (action.method.equals("POST", ignoreCase = true)) {
+                            conn.doOutput = true
+                            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                            if (action.body.isNotBlank()) {
+                                conn.outputStream.use { os ->
+                                    os.write(action.body.toByteArray(StandardCharsets.UTF_8))
+                                }
+                            }
+                        }
+                        val code = conn.responseCode
+                        if (code in 200..299) {
+                            _messageEvents.tryEmit("Webhook Success (HTTP $code)")
+                        } else {
+                            throw IllegalStateException("Webhook HTTP $code")
+                        }
+                    } finally {
+                        conn.disconnect()
+                    }
+                }
+            }
+
+            is AutomationAction.TimeWindowFilter -> {
+                val now = Calendar.getInstance()
+                val currentMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+                val startMinutes = action.startHour * 60 + action.startMinute
+                val endMinutes = action.endHour * 60 + action.endMinute
+
+                val inWindow = if (startMinutes <= endMinutes) {
+                    currentMinutes in startMinutes..endMinutes
+                } else {
+                    currentMinutes >= startMinutes || currentMinutes <= endMinutes
+                }
+
+                if (!inWindow) {
+                    throw IllegalStateException("Skipped: time outside allowed window (%02d:%02d - %02d:%02d)".format(action.startHour, action.startMinute, action.endHour, action.endMinute))
+                }
+            }
+
+            is AutomationAction.SetDndMode -> {
+                val notifManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+                    ?: throw IllegalStateException("Notification service unavailable")
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !notifManager.isNotificationPolicyAccessGranted) {
+                    val settingsIntent = Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(settingsIntent)
+                    throw IllegalStateException("Do Not Disturb permission required. Please allow TapFlow in Settings.")
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    when (action.dndMode) {
+                        "PRIORITY" -> notifManager.setInterruptionFilter(android.app.NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+                        "TOTAL_SILENCE" -> notifManager.setInterruptionFilter(android.app.NotificationManager.INTERRUPTION_FILTER_NONE)
+                        "OFF" -> notifManager.setInterruptionFilter(android.app.NotificationManager.INTERRUPTION_FILTER_ALL)
+                    }
+                }
+                _messageEvents.tryEmit(action.describe())
             }
         }
     }

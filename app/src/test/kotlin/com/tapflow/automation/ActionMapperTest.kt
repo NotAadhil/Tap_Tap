@@ -187,6 +187,32 @@ class ActionMapperTest {
         assertEquals(ActionMapper.TYPE_DELAY, delayEntity.type)
         val restoredDelay = ActionMapper.toDomain(delayEntity) as AutomationAction.DelayAction
         assertEquals(2000L, restoredDelay.durationMs)
+
+        val webhook = AutomationAction.SendWebhook(url = "https://example.com/api", method = "POST", body = "{\"key\":1}")
+        val webhookEntity = ActionMapper.toEntity(webhook)
+        assertEquals(ActionMapper.TYPE_SEND_WEBHOOK, webhookEntity.type)
+        val restoredWebhook = ActionMapper.toDomain(webhookEntity) as AutomationAction.SendWebhook
+        assertEquals("https://example.com/api", restoredWebhook.url)
+        assertEquals("POST", restoredWebhook.method)
+        assertEquals("{\"key\":1}", restoredWebhook.body)
+        assertNull(restoredWebhook.validate())
+
+        val timeWindow = AutomationAction.TimeWindowFilter(startHour = 8, startMinute = 30, endHour = 18, endMinute = 45)
+        val timeEntity = ActionMapper.toEntity(timeWindow)
+        assertEquals(ActionMapper.TYPE_TIME_WINDOW, timeEntity.type)
+        val restoredTime = ActionMapper.toDomain(timeEntity) as AutomationAction.TimeWindowFilter
+        assertEquals(8, restoredTime.startHour)
+        assertEquals(30, restoredTime.startMinute)
+        assertEquals(18, restoredTime.endHour)
+        assertEquals(45, restoredTime.endMinute)
+        assertNull(restoredTime.validate())
+
+        val dnd = AutomationAction.SetDndMode(dndMode = "TOTAL_SILENCE")
+        val dndEntity = ActionMapper.toEntity(dnd)
+        assertEquals(ActionMapper.TYPE_SET_DND, dndEntity.type)
+        val restoredDnd = ActionMapper.toDomain(dndEntity) as AutomationAction.SetDndMode
+        assertEquals("TOTAL_SILENCE", restoredDnd.dndMode)
+        assertNull(restoredDnd.validate())
     }
 
     @Test

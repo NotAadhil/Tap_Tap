@@ -28,12 +28,15 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DoNotDisturbOn
 import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.Http
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VolumeUp
@@ -320,6 +323,14 @@ fun ActionPickerDialog(
                         onClick = { onSelectType("OPEN_URL") }
                     )
                 }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.Http,
+                        title = "Send Webhook / HTTP",
+                        subtitle = "Trigger Home Assistant, IFTTT, or smart home",
+                        onClick = { onSelectType("SEND_WEBHOOK") }
+                    )
+                }
 
                 item {
                     ActionCategoryHeader("Device Hardware & Settings")
@@ -348,9 +359,25 @@ fun ActionPickerDialog(
                         onClick = { onSelectType("SET_RINGER") }
                     )
                 }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.DoNotDisturbOn,
+                        title = "Do Not Disturb (DND)",
+                        subtitle = "Toggle Priority, Total Silence, or Normal mode",
+                        onClick = { onSelectType("SET_DND") }
+                    )
+                }
 
                 item {
                     ActionCategoryHeader("Data & Timing")
+                }
+                item {
+                    ActionTypeOptionCard(
+                        icon = Icons.Outlined.Schedule,
+                        title = "Time Window Filter",
+                        subtitle = "Only run between specific hours of the day",
+                        onClick = { onSelectType("TIME_WINDOW") }
+                    )
                 }
                 item {
                     ActionTypeOptionCard(
@@ -525,6 +552,55 @@ fun ActionConfigDialog(
         )
     }
 
+    var flashlightMode by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.ToggleFlashlight) existingAction.mode else "TOGGLE"
+        )
+    }
+
+    var webhookUrl by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.SendWebhook) existingAction.url else "https://"
+        )
+    }
+    var webhookMethod by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.SendWebhook) existingAction.method else "GET"
+        )
+    }
+    var webhookBody by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.SendWebhook) existingAction.body else ""
+        )
+    }
+
+    var startHourText by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.TimeWindowFilter) "%02d".format(existingAction.startHour) else "09"
+        )
+    }
+    var startMinuteText by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.TimeWindowFilter) "%02d".format(existingAction.startMinute) else "00"
+        )
+    }
+    var endHourText by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.TimeWindowFilter) "%02d".format(existingAction.endHour) else "17"
+        )
+    }
+    var endMinuteText by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.TimeWindowFilter) "%02d".format(existingAction.endMinute) else "00"
+        )
+    }
+
+    var selectedDndMode by remember {
+        mutableStateOf(
+            if (existingAction is AutomationAction.SetDndMode) existingAction.dndMode else "PRIORITY"
+        )
+    }
+
     var clipText by remember {
         mutableStateOf(
             if (existingAction is AutomationAction.CopyToClipboard) existingAction.text else ""
@@ -591,6 +667,9 @@ fun ActionConfigDialog(
                     "SET_RINGER" -> "Configure Ringer Mode"
                     "COMPOSE_SMS" -> "Configure SMS"
                     "DELAY" -> "Configure Pause Delay"
+                    "SEND_WEBHOOK" -> "Configure Webhook / HTTP"
+                    "TIME_WINDOW" -> "Configure Time Window"
+                    "SET_DND" -> "Configure Do Not Disturb"
                     else -> "Configure Action"
                 },
                 fontWeight = FontWeight.Bold
@@ -718,34 +797,33 @@ fun ActionConfigDialog(
 
                     "TOGGLE_FLASHLIGHT" -> {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Flashlight State on Tag Scan:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { flashlightEnable = true }
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                androidx.compose.material3.RadioButton(
-                                    selected = flashlightEnable,
-                                    onClick = { flashlightEnable = true }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Turn Flashlight ON (Torch)")
-                            }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { flashlightEnable = false }
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                androidx.compose.material3.RadioButton(
-                                    selected = !flashlightEnable,
-                                    onClick = { flashlightEnable = false }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Turn Flashlight OFF")
+                            Text("Flashlight Mode on Tag Scan:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                            val options = listOf(
+                                "TOGGLE" to "Toggle ON / OFF (Flip-Flop)",
+                                "ON" to "Always Turn ON",
+                                "OFF" to "Always Turn OFF"
+                            )
+                            options.forEach { (m, label) ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            flashlightMode = m
+                                            flashlightEnable = (m != "OFF")
+                                        }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    androidx.compose.material3.RadioButton(
+                                        selected = flashlightMode == m,
+                                        onClick = {
+                                            flashlightMode = m
+                                            flashlightEnable = (m != "OFF")
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(label, fontSize = 13.sp)
+                                }
                             }
                         }
                     }
@@ -807,7 +885,8 @@ fun ActionConfigDialog(
                                 "NFC" to "NFC Settings",
                                 "SOUND" to "Sound & Volume Settings",
                                 "DISPLAY" to "Display & Brightness Settings",
-                                "BATTERY" to "Battery & Power Settings"
+                                "BATTERY" to "Battery & Power Settings",
+                                "TETHERING" to "Hotspot & Tethering Settings"
                             )
                             settings.forEach { (type, label) ->
                                 Row(
@@ -886,6 +965,127 @@ fun ActionConfigDialog(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
+                        }
+                    }
+
+                    "SEND_WEBHOOK" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("HTTP Method:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                FilterChip(
+                                    selected = webhookMethod == "GET",
+                                    onClick = { webhookMethod = "GET" },
+                                    label = { Text("GET") }
+                                )
+                                FilterChip(
+                                    selected = webhookMethod == "POST",
+                                    onClick = { webhookMethod = "POST" },
+                                    label = { Text("POST") }
+                                )
+                            }
+                            OutlinedTextField(
+                                value = webhookUrl,
+                                onValueChange = {
+                                    webhookUrl = it
+                                    errorMessage = null
+                                },
+                                label = { Text("Webhook URL") },
+                                placeholder = { Text("https://homeassistant.local/api/webhook/xyz") },
+                                isError = errorMessage != null,
+                                supportingText = errorMessage?.let { { Text(it) } },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            if (webhookMethod == "POST") {
+                                OutlinedTextField(
+                                    value = webhookBody,
+                                    onValueChange = { webhookBody = it },
+                                    label = { Text("JSON Body (Optional)") },
+                                    placeholder = { Text("{\"state\": \"on\"}") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
+                    "TIME_WINDOW" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Execute only if tag is scanned between:", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Start Time (HH:MM)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        OutlinedTextField(
+                                            value = startHourText,
+                                            onValueChange = { startHourText = it.filter { ch -> ch.isDigit() }.take(2) },
+                                            label = { Text("HH") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        OutlinedTextField(
+                                            value = startMinuteText,
+                                            onValueChange = { startMinuteText = it.filter { ch -> ch.isDigit() }.take(2) },
+                                            label = { Text("MM") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("End Time (HH:MM)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        OutlinedTextField(
+                                            value = endHourText,
+                                            onValueChange = { endHourText = it.filter { ch -> ch.isDigit() }.take(2) },
+                                            label = { Text("HH") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        OutlinedTextField(
+                                            value = endMinuteText,
+                                            onValueChange = { endMinuteText = it.filter { ch -> ch.isDigit() }.take(2) },
+                                            label = { Text("MM") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                            if (errorMessage != null) {
+                                Text(errorMessage ?: "", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    "SET_DND" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Select Do Not Disturb Mode:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                            val dndModes = listOf(
+                                "PRIORITY" to "Priority Only (Allow starred contacts & alarms)",
+                                "TOTAL_SILENCE" to "Total Silence (Mute all sounds and vibrations)",
+                                "OFF" to "Turn DND OFF (Normal audio notifications)"
+                            )
+                            dndModes.forEach { (mode, label) ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { selectedDndMode = mode }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    androidx.compose.material3.RadioButton(
+                                        selected = selectedDndMode == mode,
+                                        onClick = { selectedDndMode = mode }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(label, fontSize = 13.sp)
+                                }
+                            }
                         }
                     }
                 }
@@ -971,7 +1171,8 @@ fun ActionConfigDialog(
                                     automationId = existingAction?.automationId ?: 0,
                                     sortOrder = existingAction?.sortOrder ?: 0,
                                     isEnabled = existingAction?.isEnabled ?: true,
-                                    enable = flashlightEnable
+                                    enable = flashlightEnable,
+                                    mode = flashlightMode
                                 )
                             )
                         }
@@ -1049,6 +1250,61 @@ fun ActionConfigDialog(
                                     sortOrder = existingAction?.sortOrder ?: 0,
                                     isEnabled = existingAction?.isEnabled ?: true,
                                     durationMs = secs * 1000L
+                                )
+                            )
+                        }
+                        "SEND_WEBHOOK" -> {
+                            var cleanUrl = webhookUrl.trim()
+                            if (!cleanUrl.startsWith("http://", ignoreCase = true) && !cleanUrl.startsWith("https://", ignoreCase = true)) {
+                                cleanUrl = "https://$cleanUrl"
+                            }
+                            val err = ActionValidator.validateUrl(cleanUrl)
+                            if (err != null) {
+                                errorMessage = err
+                                return@Button
+                            }
+                            onSave(
+                                AutomationAction.SendWebhook(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    url = cleanUrl,
+                                    method = webhookMethod,
+                                    body = webhookBody.trim()
+                                )
+                            )
+                        }
+                        "TIME_WINDOW" -> {
+                            val sh = startHourText.toIntOrNull() ?: 9
+                            val sm = startMinuteText.toIntOrNull() ?: 0
+                            val eh = endHourText.toIntOrNull() ?: 17
+                            val em = endMinuteText.toIntOrNull() ?: 0
+                            val action = AutomationAction.TimeWindowFilter(
+                                id = existingAction?.id ?: 0,
+                                automationId = existingAction?.automationId ?: 0,
+                                sortOrder = existingAction?.sortOrder ?: 0,
+                                isEnabled = existingAction?.isEnabled ?: true,
+                                startHour = sh,
+                                startMinute = sm,
+                                endHour = eh,
+                                endMinute = em
+                            )
+                            val err = action.validate()
+                            if (err != null) {
+                                errorMessage = err
+                                return@Button
+                            }
+                            onSave(action)
+                        }
+                        "SET_DND" -> {
+                            onSave(
+                                AutomationAction.SetDndMode(
+                                    id = existingAction?.id ?: 0,
+                                    automationId = existingAction?.automationId ?: 0,
+                                    sortOrder = existingAction?.sortOrder ?: 0,
+                                    isEnabled = existingAction?.isEnabled ?: true,
+                                    dndMode = selectedDndMode
                                 )
                             )
                         }
