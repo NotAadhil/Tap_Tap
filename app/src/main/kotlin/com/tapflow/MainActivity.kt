@@ -81,10 +81,18 @@ class MainActivity : ComponentActivity() {
         updateNfcMode()
     }
 
+    override fun onPostResume() {
+        super.onPostResume()
+        updateNfcMode()
+    }
+
     override fun onPause() {
         super.onPause()
         val adapter = NfcAdapter.getDefaultAdapter(this)
-        if (adapter != null) {
+        val isHceEnabled = container.preferences.getBoolean("hce_emit_enabled", false)
+        // If HCE beacon is actively emitting, do not aggressively unset preferred service
+        // so that incoming RF transactions maintain routing affinity.
+        if (adapter != null && !isHceEnabled) {
             CardEmulation.getInstance(adapter).unsetPreferredService(this)
         }
         container.nfcManager.stopReaderMode(this)
@@ -96,14 +104,34 @@ class MainActivity : ComponentActivity() {
         val hceComponent = ComponentName(this, TapFlowHceService::class.java)
         val isHceEnabled = container.preferences.getBoolean("hce_emit_enabled", false)
 
+        val aids = arrayListOf("D2760000850101", "D2760000850100", "F0546170466C6F77")
+
         if (isHceEnabled) {
             // STOP reader mode so the phone's NFC hardware ceases polling and enters LISTEN/CARD mode!
             container.nfcManager.stopReaderMode(this)
+
+            // Dynamic AID registration overrides Google Pay / other services in Android's RegisteredAidCache
+            try {
+                val registered = cardEmulation.registerAidsForService(hceComponent, CardEmulation.CATEGORY_OTHER, aids)
+                android.util.Log.i("MainActivity", "registerAidsForService result: $registered")
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to register aids: ${e.message}")
+            }
+
             // Prioritize TapFlow HCE service for foreground AID routing
-            cardEmulation.setPreferredService(this, hceComponent)
+            try {
+                val preferred = cardEmulation.setPreferredService(this, hceComponent)
+                android.util.Log.i("MainActivity", "setPreferredService result: $preferred")
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to set preferred service: ${e.message}")
+            }
         } else {
-            // Unset HCE priority and resume standard tag reader mode
-            cardEmulation.unsetPreferredService(this)
+            try {
+                cardEmulation.removeAidsForService(hceComponent, CardEmulation.CATEGORY_OTHER)
+                cardEmulation.unsetPreferredService(this)
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to unregister aids: ${e.message}")
+            }
             container.nfcManager.startReaderMode(this)
         }
     }

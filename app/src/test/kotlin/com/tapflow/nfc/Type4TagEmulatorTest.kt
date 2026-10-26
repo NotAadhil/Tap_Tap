@@ -53,6 +53,18 @@ class Type4TagEmulatorTest {
     }
 
     @Test
+    fun testEmulator_selectNdefPrefixAidSucceeds() {
+        val emulator = Type4TagEmulator(isEnabled = true)
+        // 00 A4 04 00 06 D2 76 00 00 85 01 (6-byte prefix)
+        val selectNdefApdu = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x06.toByte(),
+            0xD2.toByte(), 0x76.toByte(), 0x00.toByte(), 0x00.toByte(), 0x85.toByte(), 0x01.toByte()
+        )
+        val response = emulator.processCommand(selectNdefApdu)
+        assertArrayEquals(Type4TagEmulator.STATUS_SUCCESS, response)
+    }
+
+    @Test
     fun testEmulator_selectWithP2ZeroSucceeds() {
         val emulator = Type4TagEmulator(isEnabled = true)
         // Select AID first
@@ -68,6 +80,13 @@ class Type4TagEmulatorTest {
             0xE1.toByte(), 0x03.toByte()
         )
         assertArrayEquals(Type4TagEmulator.STATUS_SUCCESS, emulator.processCommand(selectCcP2Zero))
+
+        // Select NDEF File with P2=0x04
+        val selectNdefP2Four = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x00.toByte(), 0x04.toByte(), 0x02.toByte(),
+            0xE1.toByte(), 0x04.toByte()
+        )
+        assertArrayEquals(Type4TagEmulator.STATUS_SUCCESS, emulator.processCommand(selectNdefP2Four))
     }
 
     @Test

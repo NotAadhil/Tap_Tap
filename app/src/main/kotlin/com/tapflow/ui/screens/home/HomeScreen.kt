@@ -673,6 +673,13 @@ private fun VirtualNfcBeaconCard(
                         Text("Config", fontSize = 12.sp)
                     }
                 }
+
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Tip: Receiving phone must have an NFC app open (TapFlow or NFC Tools).",
+                    fontSize = 10.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(

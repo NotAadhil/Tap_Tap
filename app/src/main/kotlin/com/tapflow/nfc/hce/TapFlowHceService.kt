@@ -29,14 +29,21 @@ class TapFlowHceService : HostApduService() {
     override fun processCommandApdu(commandApdu: ByteArray?, extras: Bundle?): ByteArray? {
         if (commandApdu == null) return null
         reloadFromPreferences()
+        val inHex = com.tapflow.nfc.TagIdentifier.bytesToHex(commandApdu)
         val response = emulator.processCommand(commandApdu)
+        val outHex = com.tapflow.nfc.TagIdentifier.bytesToHex(response)
         _lastTransmissionTimestamp.value = System.currentTimeMillis()
-        Log.d(TAG, "APDU In: ${commandApdu.size}b, Out: ${response.size}b")
+        Log.i(TAG, "processCommandApdu In: $inHex (${commandApdu.size}b) -> Out: $outHex (${response.size}b)")
         return response
     }
 
     override fun onDeactivated(reason: Int) {
-        Log.d(TAG, "Deactivated: reason=$reason")
+        val reasonStr = when (reason) {
+            DEACTIVATION_LINK_LOSS -> "LINK_LOSS"
+            DEACTIVATION_DESELECTED -> "DESELECTED"
+            else -> "UNKNOWN ($reason)"
+        }
+        Log.i(TAG, "Deactivated: reason=$reasonStr")
         emulator.onDeactivated()
     }
 

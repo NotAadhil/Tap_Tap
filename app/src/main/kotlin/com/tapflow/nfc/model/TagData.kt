@@ -14,7 +14,10 @@ data class TagData(
     val rawUidHex: String,
     val techList: List<String>,
     val hasRandomUid: Boolean = false,
-    val isPaymentCard: Boolean = false
+    val isPaymentCard: Boolean = false,
+    val ndefUri: String? = null,
+    val ndefText: String? = null,
+    val isVirtualBeacon: Boolean = false
 ) : java.io.Serializable {
     val techSummary: String
         get() = techList.joinToString(", ") { it.substringAfterLast('.') }

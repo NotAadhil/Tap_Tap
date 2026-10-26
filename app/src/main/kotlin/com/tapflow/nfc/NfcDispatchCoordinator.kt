@@ -70,8 +70,12 @@ class NfcDispatchCoordinator(
 
     fun onTagDetected(tagData: TagData, onHandled: ((ScanEvent) -> Unit)? = null) {
         scope.launch {
-            // Guard 1: Random UID
+            // Guard 1: Random UID / Virtual Beacon
             if (tagData.hasRandomUid) {
+                if (tagData.isVirtualBeacon || !tagData.ndefUri.isNullOrBlank() || !tagData.ndefText.isNullOrBlank()) {
+                    handleVirtualBeacon(tagData, onHandled)
+                    return@launch
+                }
                 val errorEvent = ScanEvent.Error(
                     message = "This tag has a dynamic random UID (starts with 0x08). It cannot be used as a reliable trigger.",
                     tagData = tagData
@@ -222,6 +226,37 @@ class NfcDispatchCoordinator(
                     _scanEvents.emit(emptyEvent)
                     onHandled?.invoke(emptyEvent)
                 }
+        }
+    }
+
+    private suspend fun handleVirtualBeacon(tagData: TagData, onHandled: ((ScanEvent) -> Unit)?) {
+        val uri = tagData.ndefUri
+        val text = tagData.ndefText
+
+        val action: AutomationAction? = when {
+            !uri.isNullOrBlank() -> AutomationAction.OpenUrl(url = uri)
+            !text.isNullOrBlank() -> AutomationAction.ShowNotification(title = "Virtual NFC Beacon", body = text)
+            else -> null
+        }
+
+        if (action != null) {
+            val results = automationExecutor.execute(tagData.tagKey, listOf(action))
+            val dummyTag = RegisteredTagEntity(
+                tagKey = "BEACON:${tagData.rawUidHex}",
+                displayName = "Virtual NFC Beacon",
+                rawUidHex = tagData.rawUidHex,
+                techList = tagData.techSummary,
+                actionPayload = uri ?: text ?: "Emulated Type 4 Smart Card"
+            )
+            val firstResult = results.firstOrNull() ?: ActionResult.Success("Virtual beacon action executed")
+            val event = ScanEvent.Matched(
+                tag = dummyTag,
+                result = firstResult,
+                isExecuted = true,
+                allResults = results
+            )
+            _scanEvents.emit(event)
+            onHandled?.invoke(event)
         }
     }
 

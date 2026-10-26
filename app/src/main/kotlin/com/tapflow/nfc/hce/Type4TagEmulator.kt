@@ -96,17 +96,16 @@ class Type4TagEmulator(
             val aid = apdu.copyOfRange(5, 5 + lc)
             if (aid.contentEquals(AID_NDEF_TYPE4_V2) ||
                 aid.contentEquals(AID_NDEF_TYPE4_V1) ||
-                aid.contentEquals(AID_TAPFLOW)) {
+                aid.contentEquals(AID_TAPFLOW) ||
+                (aid.size >= 6 && aid.take(6).toByteArray().contentEquals(byteArrayOf(0xD2.toByte(), 0x76.toByte(), 0x00, 0x00, 0x85.toByte(), 0x01)))) {
                 selectedFile = FileType.NONE
                 return STATUS_SUCCESS
             }
             return STATUS_FILE_NOT_FOUND
         }
 
-        // P1=0x00 or 0x02: Select by EF ID
-        // P2 can be 0x00 (first occurrence) or 0x0C (no FCI)
-        if ((p1 == 0x00.toByte() || p1 == 0x02.toByte()) &&
-            (p2 == 0x0C.toByte() || p2 == 0x00.toByte())) {
+        // P1=0x00 or 0x02: Select by EF ID (accepts any P2: 0x00, 0x04, 0x08, 0x0C)
+        if (p1 == 0x00.toByte() || p1 == 0x02.toByte()) {
             val lc = if (apdu.size > 4) apdu[4].toInt() and 0xFF else 0
             if (apdu.size < 5 + lc || lc < 2) return STATUS_FILE_NOT_FOUND
             val fileId = apdu.copyOfRange(5, 7)
@@ -130,7 +129,8 @@ class Type4TagEmulator(
         val offset = ((p1.toInt() and 0xFF) shl 8) or (p2.toInt() and 0xFF)
         val le = if (apdu.size > 4) apdu[4].toInt() and 0xFF else 0
 
-        val fileBytes = when (selectedFile) {
+        val currentFile = if (selectedFile != FileType.NONE) selectedFile else FileType.NDEF
+        val fileBytes = when (currentFile) {
             FileType.CC -> CC_FILE
             FileType.NDEF -> buildNdefFileBytes()
             FileType.NONE -> return STATUS_FILE_NOT_FOUND
@@ -141,7 +141,7 @@ class Type4TagEmulator(
         }
 
         val lengthToRead = if (le == 0) {
-            minOf(256, fileBytes.size - offset)
+            minOf(255, fileBytes.size - offset)
         } else {
             minOf(le, fileBytes.size - offset)
         }
