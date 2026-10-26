@@ -3,6 +3,9 @@ package com.tapflow.nfc.hce
 import android.content.Context
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
+import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Android Host Card Emulation (HCE) service.
@@ -12,6 +15,12 @@ class TapFlowHceService : HostApduService() {
 
     private val emulator = Type4TagEmulator()
 
+    companion object {
+        private const val TAG = "TapFlowHceService"
+        private val _lastTransmissionTimestamp = MutableStateFlow<Long?>(null)
+        val lastTransmissionTimestamp = _lastTransmissionTimestamp.asStateFlow()
+    }
+
     override fun onCreate() {
         super.onCreate()
         reloadFromPreferences()
@@ -20,10 +29,14 @@ class TapFlowHceService : HostApduService() {
     override fun processCommandApdu(commandApdu: ByteArray?, extras: Bundle?): ByteArray? {
         if (commandApdu == null) return null
         reloadFromPreferences()
-        return emulator.processCommand(commandApdu)
+        val response = emulator.processCommand(commandApdu)
+        _lastTransmissionTimestamp.value = System.currentTimeMillis()
+        Log.d(TAG, "APDU In: ${commandApdu.size}b, Out: ${response.size}b")
+        return response
     }
 
     override fun onDeactivated(reason: Int) {
+        Log.d(TAG, "Deactivated: reason=$reason")
         emulator.onDeactivated()
     }
 

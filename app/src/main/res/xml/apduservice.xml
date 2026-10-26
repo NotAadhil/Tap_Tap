@@ -5,8 +5,10 @@
     <aid-group
         android:category="other"
         android:description="@string/hce_aid_desc">
-        <!-- NFC Forum Type 4 Tag NDEF Application ID -->
+        <!-- NFC Forum Type 4 Tag NDEF Application ID v2.0 -->
         <aid-filter android:name="D2760000850101" />
+        <!-- NFC Forum Type 4 Tag NDEF Application ID v1.0 / DESFire -->
+        <aid-filter android:name="D2760000850100" />
         <!-- TapFlow Proprietary Application ID -->
         <aid-filter android:name="F0546170466C6F77" />
     </aid-group>

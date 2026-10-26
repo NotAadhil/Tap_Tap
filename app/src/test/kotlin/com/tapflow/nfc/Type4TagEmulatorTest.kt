@@ -29,7 +29,7 @@ class Type4TagEmulatorTest {
     }
 
     @Test
-    fun testEmulator_selectNdefApplicationSucceeds() {
+    fun testEmulator_selectNdefApplicationV2Succeeds() {
         val emulator = Type4TagEmulator(isEnabled = true)
         // 00 A4 04 00 07 D2 76 00 00 85 01 01
         val selectNdefApdu = byteArrayOf(
@@ -38,6 +38,36 @@ class Type4TagEmulatorTest {
         )
         val response = emulator.processCommand(selectNdefApdu)
         assertArrayEquals(Type4TagEmulator.STATUS_SUCCESS, response)
+    }
+
+    @Test
+    fun testEmulator_selectNdefApplicationV1Succeeds() {
+        val emulator = Type4TagEmulator(isEnabled = true)
+        // 00 A4 04 00 07 D2 76 00 00 85 01 00
+        val selectNdefApdu = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x07.toByte(),
+            0xD2.toByte(), 0x76.toByte(), 0x00.toByte(), 0x00.toByte(), 0x85.toByte(), 0x01.toByte(), 0x00.toByte()
+        )
+        val response = emulator.processCommand(selectNdefApdu)
+        assertArrayEquals(Type4TagEmulator.STATUS_SUCCESS, response)
+    }
+
+    @Test
+    fun testEmulator_selectWithP2ZeroSucceeds() {
+        val emulator = Type4TagEmulator(isEnabled = true)
+        // Select AID first
+        val selectApp = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x07.toByte(),
+            0xD2.toByte(), 0x76.toByte(), 0x00.toByte(), 0x00.toByte(), 0x85.toByte(), 0x01.toByte(), 0x01.toByte()
+        )
+        assertArrayEquals(Type4TagEmulator.STATUS_SUCCESS, emulator.processCommand(selectApp))
+
+        // Select CC File with P2=0x00 (common on AOSP Android readers)
+        val selectCcP2Zero = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x00.toByte(), 0x00.toByte(), 0x02.toByte(),
+            0xE1.toByte(), 0x03.toByte()
+        )
+        assertArrayEquals(Type4TagEmulator.STATUS_SUCCESS, emulator.processCommand(selectCcP2Zero))
     }
 
     @Test
